@@ -1,13 +1,13 @@
-import { motion } from 'framer-motion';
-import { ChefHat } from 'lucide-react';
-import heroBg from '@/assets/hero-bg.jpg';
+import { motion } from "framer-motion";
+import { ChefHat } from "lucide-react";
+import heroBg from "@/assets/hero-bg.jpg";
 
 const floatingIngredients = [
-  { name: '🥚 Eggs', delay: 0 },
-  { name: '🍅 Tomatoes', delay: 0.5 },
-  { name: '🍗 Chicken', delay: 1 },
-  { name: '🧄 Garlic', delay: 1.5 },
-  { name: '🥔 Potatoes', delay: 2 },
+  { name: "🥚 Eggs", delay: 0 },
+  { name: "🍅 Tomatoes", delay: 0.5 },
+  { name: "🍗 Chicken", delay: 1 },
+  { name: "🧄 Garlic", delay: 1.5 },
+  { name: "🥔 Potatoes", delay: 2 },
 ];
 
 interface HeroSectionProps {
@@ -22,16 +22,12 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
         <motion.div
           initial={{ scale: 1.1 }}
           animate={{ scale: 1 }}
-          transition={{ duration: 1.5, ease: 'easeOut' }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
           className="w-full h-full"
         >
-          <img
-            src={heroBg}
-            alt="Fresh ingredients on kitchen counter"
-            className="w-full h-full object-cover"
-          />
+          <img src={heroBg} alt="Fresh ingredients on kitchen counter" className="w-full h-full object-cover" />
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/50 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-background/30 to-background" />
       </div>
 
       {/* Content */}
@@ -54,8 +50,7 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
           transition={{ duration: 0.7, delay: 0.3 }}
           className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 font-serif"
         >
-          What Can I{' '}
-          <span className="text-gradient">Cook Today?</span>
+          What Can I <span className="text-gradient">Cook Today?</span>
         </motion.h1>
 
         <motion.p
@@ -113,10 +108,7 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
       {/* Decorative bottom curve */}
       <div className="absolute bottom-0 left-0 right-0">
         <svg viewBox="0 0 1440 60" fill="none" className="w-full">
-          <path
-            d="M0 60V20C240 50 480 60 720 45C960 30 1200 10 1440 25V60H0Z"
-            fill="hsl(var(--background))"
-          />
+          <path d="M0 60V20C240 50 480 60 720 45C960 30 1200 10 1440 25V60H0Z" fill="hsl(var(--background))" />
         </svg>
       </div>
     </section>
