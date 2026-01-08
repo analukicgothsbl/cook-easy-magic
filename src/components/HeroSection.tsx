@@ -27,11 +27,11 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
         >
           <img src={heroBg} alt="Fresh ingredients on kitchen counter" className="w-full h-full object-cover" />
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/90 to-background" />
       </div>
 
       {/* Content */}
-      <div className="relative z-10 container-narrow section-padding text-center">
+      <div className="relative z-20 container-narrow section-padding text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
