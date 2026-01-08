@@ -32,18 +32,6 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
 
       {/* Content */}
       <div className="relative z-20 container-narrow section-padding text-center mt-64">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mb-6"
-        >
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary font-semibold text-sm">
-            <ChefHat className="w-4 h-4" />
-            Cook Master
-          </span>
-        </motion.div>
-
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
