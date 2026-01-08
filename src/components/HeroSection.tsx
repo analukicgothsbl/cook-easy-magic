@@ -31,7 +31,7 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 container-narrow section-padding text-center">
+      <div className="relative z-20 container-narrow section-padding text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
