@@ -27,7 +27,7 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
         >
           <img src={heroBg} alt="Fresh ingredients on kitchen counter" className="w-full h-full object-cover" />
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/90 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/70 to-background" />
       </div>
 
       {/* Content */}
