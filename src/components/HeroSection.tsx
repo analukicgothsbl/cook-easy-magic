@@ -62,7 +62,7 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-4"
+          className="text-lg sm:text-xl text-foreground font-medium max-w-2xl mx-auto mb-4 drop-shadow-md"
         >
           Enter the ingredients you have at home and get a simple recipe in seconds.
         </motion.p>
@@ -71,7 +71,7 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.7 }}
-          className="text-sm text-muted-foreground mb-8"
+          className="text-sm text-foreground/90 font-medium mb-8 drop-shadow-sm"
         >
           No login required • Free • Made for everyday cooking
         </motion.p>
