@@ -34,8 +34,7 @@ export const ImageGallery = () => {
 
       <div
         ref={scrollRef}
-        className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 px-4 sm:px-8 snap-x snap-mandatory scrollbar-hide"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        className="flex gap-4 sm:gap-6 justify-center flex-wrap pb-4 px-4 sm:px-8"
       >
         {galleryItems.map((item, index) => (
           <motion.div
@@ -44,7 +43,6 @@ export const ImageGallery = () => {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
-            className="flex-shrink-0 snap-center"
           >
             <div className="relative w-64 sm:w-72 h-80 sm:h-96 rounded-2xl overflow-hidden group">
               <img
