@@ -50,7 +50,7 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
           transition={{ duration: 0.7, delay: 0.3 }}
           className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 font-serif"
         >
-          What Can I <span className="text-gradient">Cook Today?</span>
+          What Can I Cook Today?
         </motion.h1>
 
         <motion.p
