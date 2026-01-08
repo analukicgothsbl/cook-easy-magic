@@ -16,7 +16,7 @@ interface HeroSectionProps {
 
 export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
   return (
-    <section className="relative min-h-[90vh] flex items-end justify-center overflow-hidden pb-24">
+    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <motion.div
@@ -27,11 +27,11 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
         >
           <img src={heroBg} alt="Fresh ingredients on kitchen counter" className="w-full h-full object-cover" />
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/50 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
       </div>
 
       {/* Content */}
-      <div className="relative z-20 container-narrow section-padding text-center">
+      <div className="relative z-20 container-narrow section-padding text-center pt-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
