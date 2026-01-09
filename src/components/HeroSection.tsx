@@ -96,7 +96,14 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
       {/* Decorative bottom curve */}
       <div className="absolute bottom-0 left-0 right-0">
         <svg viewBox="0 0 1440 60" fill="none" className="w-full">
-          <path d="M0 60V20C240 50 480 60 720 45C960 30 1200 10 1440 25V60H0Z" fill="hsl(var(--cream-100))" />
+          <defs>
+            <linearGradient id="curveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="hsl(var(--primary) / 0.5)" />
+              <stop offset="50%" stopColor="hsl(var(--primary) / 0.65)" />
+              <stop offset="100%" stopColor="hsl(var(--primary) / 0.8)" />
+            </linearGradient>
+          </defs>
+          <path d="M0 60V20C240 50 480 60 720 45C960 30 1200 10 1440 25V60H0Z" fill="url(#curveGradient)" />
         </svg>
       </div>
     </section>
