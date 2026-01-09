@@ -28,8 +28,8 @@ export const Navbar = () => {
         {/* Auth Buttons */}
         <div className="flex items-center gap-3">
           <Button
-            variant="ghost"
-            className="text-foreground hover:text-coral-600 hover:bg-coral-50 font-medium transition-all duration-200"
+            variant="outline"
+            className="bg-secondary text-secondary-foreground border-2 border-border hover:border-primary hover:bg-secondary font-medium transition-all duration-200"
           >
             Login
           </Button>
