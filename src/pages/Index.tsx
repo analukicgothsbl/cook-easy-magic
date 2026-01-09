@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Navbar } from '@/components/Navbar';
 import { HeroSection } from '@/components/HeroSection';
 import { RecipeForm, RecipeFormData } from '@/components/RecipeForm';
 import { RecipeCard, Recipe } from '@/components/RecipeCard';
@@ -145,6 +146,7 @@ const Index = () => {
 
   return (
     <main className="min-h-screen bg-background">
+      <Navbar />
       <HeroSection onCtaClick={scrollToForm} />
       
       <div ref={formRef}>
