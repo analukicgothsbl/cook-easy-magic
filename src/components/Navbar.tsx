@@ -8,7 +8,7 @@ export const Navbar = () => {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-coral-100/50 shadow-soft"
+      className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-coral-100/50 shadow-[0_4px_20px_-4px_rgba(251,146,60,0.25)]"
     >
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo */}
@@ -17,8 +17,8 @@ export const Navbar = () => {
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="w-10 h-10 bg-gradient-to-br from-coral-400 to-coral-500 rounded-xl flex items-center justify-center shadow-md">
-            <ChefHat className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 bg-cream-100 rounded-xl flex items-center justify-center">
+            <ChefHat className="w-6 h-6 text-coral-500" />
           </div>
           <span className="font-serif text-xl font-bold text-foreground">
             Cook Master
@@ -34,7 +34,7 @@ export const Navbar = () => {
             Login
           </Button>
           <Button
-            className="bg-coral-500 hover:bg-coral-600 text-white font-medium px-5 shadow-md hover:shadow-lg transition-all duration-200 border-2 border-coral-500 hover:border-coral-600"
+            className="bg-gradient-to-r from-coral-400 to-coral-500 hover:from-coral-500 hover:to-coral-600 text-white font-semibold px-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
           >
             Sign Up
           </Button>
