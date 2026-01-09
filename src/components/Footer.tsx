@@ -9,7 +9,7 @@ const footerLinks = [
 
 export const Footer = () => {
   return (
-    <footer className="py-12 px-4 bg-cream-dark border-t border-border">
+    <footer className="py-12 px-4 bg-cream-dark shadow-[0_-4px_20px_-4px_rgba(251,146,60,0.25)]">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0 }}
