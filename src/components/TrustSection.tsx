@@ -1,10 +1,29 @@
 import { motion } from "framer-motion";
-import { Heart, Smartphone } from "lucide-react";
+import { Heart, Smartphone, Sparkles } from "lucide-react";
 
 export const TrustSection = () => {
   return (
-    <section className="section-padding bg-background">
-      <div className="container-narrow">
+    <section className="section-padding relative overflow-hidden bg-gradient-to-br from-stone-800 via-stone-900 to-stone-950">
+      {/* Subtle warm glow overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-primary/10 pointer-events-none" />
+      
+      {/* Decorative floating elements */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 0.15 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1 }}
+        className="absolute top-10 left-10 w-32 h-32 bg-primary/30 rounded-full blur-3xl"
+      />
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 0.1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1, delay: 0.3 }}
+        className="absolute bottom-10 right-10 w-48 h-48 bg-primary/20 rounded-full blur-3xl"
+      />
+
+      <div className="container-narrow relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -12,23 +31,82 @@ export const TrustSection = () => {
           transition={{ duration: 0.5 }}
           className="text-center"
         >
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-6">
-            <Heart className="w-8 h-8 text-primary" />
-          </div>
+          {/* Glowing heart icon */}
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary/30 to-primary/10 rounded-full mb-8 shadow-[0_0_40px_rgba(251,146,60,0.3)]"
+          >
+            <Heart className="w-10 h-10 text-primary" fill="hsl(var(--primary) / 0.3)" />
+          </motion.div>
 
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground font-serif mb-4">Made for Everyday Cooks</h2>
+          <motion.h2 
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="text-3xl sm:text-4xl font-bold text-cream-100 font-serif mb-6"
+          >
+            Made for Everyday Cooks
+          </motion.h2>
 
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed mb-6">
+          <motion.p 
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="text-stone-300 max-w-2xl mx-auto text-lg leading-relaxed mb-8"
+          >
             This app is designed to make everyday cooking easier - not more complicated.
             <br />
-            No ads. No pressure. Just food ideas from what you already have.
-          </p>
+            <span className="text-primary/90">No ads. No pressure.</span> Just food ideas from what you already have.
+          </motion.p>
 
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-secondary rounded-full text-sm text-muted-foreground">
-            <Smartphone className="w-4 h-4" />
+          {/* Feature pills */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="flex flex-wrap justify-center gap-3 mb-8"
+          >
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-stone-800/80 border border-primary/20 rounded-full text-sm text-cream-100">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Simple & intuitive
+            </span>
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-stone-800/80 border border-primary/20 rounded-full text-sm text-cream-100">
+              <Heart className="w-4 h-4 text-primary" />
+              Made with love
+            </span>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-primary/10 border border-primary/30 rounded-full text-sm text-cream-100 shadow-[0_0_20px_rgba(251,146,60,0.15)]"
+          >
+            <Smartphone className="w-4 h-4 text-primary" />
             Works best on mobile or tablet in the kitchen
-          </div>
+          </motion.div>
         </motion.div>
+      </div>
+
+      {/* Top decorative curve */}
+      <div className="absolute top-0 left-0 right-0 rotate-180">
+        <svg viewBox="0 0 1440 40" fill="none" className="w-full">
+          <path d="M0 40V10C360 30 720 40 1080 25C1260 17 1380 8 1440 0V40H0Z" fill="hsl(var(--background))" />
+        </svg>
+      </div>
+
+      {/* Bottom decorative curve */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <svg viewBox="0 0 1440 40" fill="none" className="w-full">
+          <path d="M0 40V10C360 30 720 40 1080 25C1260 17 1380 8 1440 0V40H0Z" fill="hsl(var(--background))" />
+        </svg>
       </div>
     </section>
   );
