@@ -72,11 +72,11 @@ export const TrustSection = () => {
             transition={{ duration: 0.5, delay: 0.5 }}
             className="flex flex-wrap justify-center gap-3 mb-8"
           >
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-stone-800/80 border border-primary/20 rounded-full text-sm text-cream-100">
+            <span className="text-stone-300 inline-flex items-center gap-2 px-4 py-2 bg-stone-800/80 border border-primary/20 rounded-full text-sm text-cream-100">
               <Sparkles className="w-4 h-4 text-primary" />
               Simple & intuitive
             </span>
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-stone-800/80 border border-primary/20 rounded-full text-sm text-cream-100">
+            <span className="text-stone-300 inline-flex items-center gap-2 px-4 py-2 bg-stone-800/80 border border-primary/20 rounded-full text-sm text-cream-100">
               <Heart className="w-4 h-4 text-primary" />
               Made with love
             </span>
@@ -87,7 +87,7 @@ export const TrustSection = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.6 }}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-primary/10 border border-primary/30 rounded-full text-sm text-cream-100 shadow-[0_0_20px_rgba(251,146,60,0.15)]"
+            className="text-stone-300 inline-flex items-center gap-2 px-5 py-3 bg-primary/10 border border-primary/30 rounded-full text-sm text-cream-100 shadow-[0_0_20px_rgba(251,146,60,0.15)]"
           >
             <Smartphone className="w-4 h-4 text-primary" />
             Works best on mobile or tablet in the kitchen
