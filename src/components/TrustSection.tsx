@@ -6,7 +6,7 @@ export const TrustSection = () => {
     <section className="section-padding relative overflow-hidden bg-gradient-to-br from-stone-800 via-stone-900 to-stone-950">
       {/* Subtle warm glow overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-primary/10 pointer-events-none" />
-      
+
       {/* Decorative floating elements */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -32,7 +32,7 @@ export const TrustSection = () => {
           className="text-center"
         >
           {/* Glowing heart icon */}
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
@@ -42,17 +42,17 @@ export const TrustSection = () => {
             <Heart className="w-10 h-10 text-primary" fill="hsl(var(--primary) / 0.3)" />
           </motion.div>
 
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="text-3xl sm:text-4xl font-bold text-cream-100 font-serif mb-6"
+            className="text-stone-300 text-3xl sm:text-4xl font-bold text-cream-100 font-serif mb-6"
           >
             Made for Everyday Cooks
           </motion.h2>
 
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -82,7 +82,7 @@ export const TrustSection = () => {
             </span>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
