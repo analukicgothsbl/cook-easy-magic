@@ -94,7 +94,7 @@ export const HeroSection = ({ onCtaClick }: HeroSectionProps) => {
       </div>
 
       {/* Decorative bottom curve */}
-      <div className="absolute bottom-0 left-0 right-0">
+      <div className="absolute bottom-0 left-0 right-0" style={{ filter: 'drop-shadow(0 -4px 20px rgba(251,146,60,0.3))' }}>
         <svg viewBox="0 0 1440 60" fill="none" className="w-full">
           <defs>
             <linearGradient id="curveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
