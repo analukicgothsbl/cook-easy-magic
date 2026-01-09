@@ -17,10 +17,10 @@ export const Navbar = () => {
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="w-10 h-10 bg-cream-100 rounded-xl flex items-center justify-center">
-            <ChefHat className="w-6 h-6 text-coral-500" />
+          <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+            <ChefHat className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="font-serif text-xl font-bold text-foreground">
+          <span className="font-bold text-xl text-foreground">
             Cook Master
           </span>
         </motion.div>
