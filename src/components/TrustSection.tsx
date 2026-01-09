@@ -96,16 +96,30 @@ export const TrustSection = () => {
       </div>
 
       {/* Top decorative curve */}
-      <div className="absolute top-0 left-0 right-0 rotate-180">
+      <div className="absolute top-0 left-0 right-0 rotate-180" style={{ filter: 'drop-shadow(0 -4px 20px rgba(251,146,60,0.3))' }}>
         <svg viewBox="0 0 1440 40" fill="none" className="w-full">
-          <path d="M0 40V10C360 30 720 40 1080 25C1260 17 1380 8 1440 0V40H0Z" fill="hsl(var(--background))" />
+          <defs>
+            <linearGradient id="topCurveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="hsl(var(--primary) / 0.5)" />
+              <stop offset="50%" stopColor="hsl(var(--primary) / 0.65)" />
+              <stop offset="100%" stopColor="hsl(var(--primary) / 0.8)" />
+            </linearGradient>
+          </defs>
+          <path d="M0 40V10C360 30 720 40 1080 25C1260 17 1380 8 1440 0V40H0Z" fill="url(#topCurveGradient)" />
         </svg>
       </div>
 
       {/* Bottom decorative curve */}
-      <div className="absolute bottom-0 left-0 right-0">
+      <div className="absolute bottom-0 left-0 right-0" style={{ filter: 'drop-shadow(0 -4px 20px rgba(251,146,60,0.3))' }}>
         <svg viewBox="0 0 1440 40" fill="none" className="w-full">
-          <path d="M0 40V10C360 30 720 40 1080 25C1260 17 1380 8 1440 0V40H0Z" fill="hsl(var(--background))" />
+          <defs>
+            <linearGradient id="bottomCurveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="hsl(var(--primary) / 0.5)" />
+              <stop offset="50%" stopColor="hsl(var(--primary) / 0.65)" />
+              <stop offset="100%" stopColor="hsl(var(--primary) / 0.8)" />
+            </linearGradient>
+          </defs>
+          <path d="M0 40V10C360 30 720 40 1080 25C1260 17 1380 8 1440 0V40H0Z" fill="url(#bottomCurveGradient)" />
         </svg>
       </div>
     </section>
