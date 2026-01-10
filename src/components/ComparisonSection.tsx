@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check, Star, BookOpen, Calendar, Download, Image, Flame } from "lucide-react";
+import { Check, Star, BookOpen, Calendar, Download, Image, Flame, Settings } from "lucide-react";
 import grilledChicken from "@/assets/grilled-chicken.jpg";
 
 const freeFeatures = [
@@ -20,6 +20,7 @@ const accountFeatures = [
   { icon: Image, text: "Allow recipe images" },
   { icon: Flame, text: "Recipe energy value (calories)" },
   { icon: Download, text: "Export shopping list (PDF)" },
+  { icon: Settings, text: "Personalized settings" },
 ];
 
 export const ComparisonSection = () => {
