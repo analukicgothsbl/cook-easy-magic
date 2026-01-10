@@ -14,6 +14,171 @@ export type Database = {
   }
   public: {
     Tables: {
+      recipe: {
+        Row: {
+          budget_level: Database["public"]["Enums"]["budget_level"] | null
+          cost_usd: number | null
+          created_at: string
+          cuisine: Database["public"]["Enums"]["cuisine_type"] | null
+          description_long: string | null
+          description_short: string | null
+          difficulty: Database["public"]["Enums"]["difficulty_level"] | null
+          id: string
+          ingredients: Json[] | null
+          input_ingredients: string[] | null
+          input_tokens: number | null
+          instructions: string | null
+          kids_friendly: boolean | null
+          meal_category: Database["public"]["Enums"]["meal_category"] | null
+          nutrition_estimate: Json | null
+          output_tokens: number | null
+          servings: number | null
+          time_minutes: number | null
+          tips: string | null
+          title: string
+          total_tokens: number | null
+        }
+        Insert: {
+          budget_level?: Database["public"]["Enums"]["budget_level"] | null
+          cost_usd?: number | null
+          created_at?: string
+          cuisine?: Database["public"]["Enums"]["cuisine_type"] | null
+          description_long?: string | null
+          description_short?: string | null
+          difficulty?: Database["public"]["Enums"]["difficulty_level"] | null
+          id?: string
+          ingredients?: Json[] | null
+          input_ingredients?: string[] | null
+          input_tokens?: number | null
+          instructions?: string | null
+          kids_friendly?: boolean | null
+          meal_category?: Database["public"]["Enums"]["meal_category"] | null
+          nutrition_estimate?: Json | null
+          output_tokens?: number | null
+          servings?: number | null
+          time_minutes?: number | null
+          tips?: string | null
+          title: string
+          total_tokens?: number | null
+        }
+        Update: {
+          budget_level?: Database["public"]["Enums"]["budget_level"] | null
+          cost_usd?: number | null
+          created_at?: string
+          cuisine?: Database["public"]["Enums"]["cuisine_type"] | null
+          description_long?: string | null
+          description_short?: string | null
+          difficulty?: Database["public"]["Enums"]["difficulty_level"] | null
+          id?: string
+          ingredients?: Json[] | null
+          input_ingredients?: string[] | null
+          input_tokens?: number | null
+          instructions?: string | null
+          kids_friendly?: boolean | null
+          meal_category?: Database["public"]["Enums"]["meal_category"] | null
+          nutrition_estimate?: Json | null
+          output_tokens?: number | null
+          servings?: number | null
+          time_minutes?: number | null
+          tips?: string | null
+          title?: string
+          total_tokens?: number | null
+        }
+        Relationships: []
+      }
+      recipe_favorites: {
+        Row: {
+          created_at: string
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_favorites_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_image: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          recipe_id: string
+          usd_costs: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          recipe_id: string
+          usd_costs?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          recipe_id?: string
+          usd_costs?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_image_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_review: {
+        Row: {
+          created_at: string
+          id: string
+          rating: number | null
+          recipe_id: string
+          review: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rating?: number | null
+          recipe_id: string
+          review?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rating?: number | null
+          recipe_id?: string
+          review?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_review_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_extended: {
         Row: {
           created_at: string
