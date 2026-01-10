@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Lock, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, Lock, Loader2, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface RecipeFormProps {
   onSubmit: (data: RecipeFormData) => void;
   isLoading: boolean;
   isRegistered?: boolean;
+  isGuestBlocked?: boolean;
 }
 
 export interface RecipeFormData {
@@ -50,7 +52,8 @@ const kidsFriendlyOptions = [
   { id: 'no', label: 'No', value: false },
 ];
 
-export const RecipeForm = ({ onSubmit, isLoading, isRegistered = false }: RecipeFormProps) => {
+export const RecipeForm = ({ onSubmit, isLoading, isRegistered = false, isGuestBlocked = false }: RecipeFormProps) => {
+  const navigate = useNavigate();
   const [ingredients, setIngredients] = useState('');
   const [mealType, setMealType] = useState('');
   const [timeAvailable, setTimeAvailable] = useState('');
@@ -358,14 +361,50 @@ export const RecipeForm = ({ onSubmit, isLoading, isRegistered = false }: Recipe
               </AnimatePresence>
             </div>
 
+            {/* Guest Mode Banner */}
+            {!isRegistered && !isGuestBlocked && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 p-3 bg-accent/50 rounded-xl border border-primary/20 text-sm"
+              >
+                <User className="w-4 h-4 text-primary flex-shrink-0" />
+                <span className="text-muted-foreground">
+                  <strong className="text-foreground">Guest mode:</strong> 1 free recipe. Sign up for more.
+                </span>
+              </motion.div>
+            )}
+
+            {/* Guest Blocked State */}
+            {!isRegistered && isGuestBlocked && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center gap-3 p-4 bg-destructive/10 rounded-xl border border-destructive/20"
+              >
+                <p className="text-sm text-foreground text-center">
+                  You've used your free guest recipe. Create a free account to continue!
+                </p>
+                <motion.button
+                  type="button"
+                  onClick={() => navigate('/auth')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="btn-primary py-2 px-4 text-sm"
+                >
+                  Create free account
+                </motion.button>
+              </motion.div>
+            )}
+
             {/* Submit Button */}
             <motion.button
               type="submit"
-              disabled={!isValid || isLoading}
-              whileHover={isValid && !isLoading ? { scale: 1.02 } : {}}
-              whileTap={isValid && !isLoading ? { scale: 0.98 } : {}}
+              disabled={!isValid || isLoading || isGuestBlocked}
+              whileHover={isValid && !isLoading && !isGuestBlocked ? { scale: 1.02 } : {}}
+              whileTap={isValid && !isLoading && !isGuestBlocked ? { scale: 0.98 } : {}}
               className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all duration-300 ${
-                isValid && !isLoading
+                isValid && !isLoading && !isGuestBlocked
                   ? 'bg-primary text-primary-foreground shadow-lg hover:shadow-xl'
                   : 'bg-muted text-muted-foreground cursor-not-allowed'
               }`}
@@ -396,7 +435,7 @@ export const RecipeForm = ({ onSubmit, isLoading, isRegistered = false }: Recipe
               </AnimatePresence>
             </motion.button>
 
-            {!isRegistered && (
+            {!isRegistered && !isGuestBlocked && (
               <p className="text-xs text-muted-foreground text-center">
                 Create a free account to choose cuisine preferences
               </p>
