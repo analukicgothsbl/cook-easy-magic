@@ -173,6 +173,7 @@ const Index = () => {
         <div ref={resultRef}>
           <RecipeCard 
             recipe={recipe || { title: '', ingredients: [] }} 
+            recipeId={recipeId || undefined}
             onGenerateAnother={handleGenerateAnother}
             isLoading={isLoading}
             errorMsg={errorMsg}
