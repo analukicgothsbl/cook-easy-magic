@@ -1,24 +1,164 @@
 import { motion } from 'framer-motion';
-import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb } from 'lucide-react';
+import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb, ChefHat, Flame } from 'lucide-react';
 import foodPasta from '@/assets/food-pasta.jpg';
 
+interface Ingredient {
+  name: string;
+  quantity: string;
+  unit: string;
+}
+
+interface NutritionEstimate {
+  calories: number;
+  protein: string;
+  carbs: string;
+  fat: string;
+}
+
 export interface Recipe {
+  id?: string;
   title: string;
-  mealType: string;
-  time: string;
-  cuisine: string;
-  servings: number;
-  ingredients: string[];
-  steps: string[];
+  description_short?: string;
+  description_long?: string;
+  mealType?: string;
+  meal_category?: string;
+  time?: string;
+  time_minutes?: number;
+  cuisine?: string;
+  servings?: number;
+  difficulty?: string;
+  budget_level?: string;
+  kids_friendly?: boolean;
+  ingredients: (string | Ingredient)[];
+  steps?: string[];
+  instructions?: string[];
   tip?: string;
+  tips?: string;
+  nutrition_estimate?: NutritionEstimate;
 }
 
 interface RecipeCardProps {
   recipe: Recipe;
   onGenerateAnother: () => void;
+  isLoading?: boolean;
+  errorMsg?: string;
+  onRetry?: () => void;
+  isLoggedIn?: boolean;
 }
 
-export const RecipeCard = ({ recipe, onGenerateAnother }: RecipeCardProps) => {
+// Skeleton loader component
+const RecipeSkeleton = () => (
+  <section className="section-padding bg-background">
+    <div className="container-narrow">
+      <div className="card-warm overflow-hidden animate-pulse">
+        <div className="h-48 sm:h-64 bg-muted" />
+        <div className="p-6 sm:p-8 space-y-6">
+          <div className="space-y-3">
+            <div className="h-8 bg-muted rounded w-3/4" />
+            <div className="h-4 bg-muted rounded w-1/2" />
+            <div className="flex gap-3">
+              <div className="h-6 bg-muted rounded-full w-20" />
+              <div className="h-6 bg-muted rounded w-24" />
+              <div className="h-6 bg-muted rounded w-24" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="h-6 bg-muted rounded w-32" />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-5 bg-muted rounded w-full" />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="h-6 bg-muted rounded w-32" />
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex gap-4">
+                <div className="h-8 w-8 bg-muted rounded-full flex-shrink-0" />
+                <div className="h-5 bg-muted rounded flex-1" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+export const RecipeCard = ({ 
+  recipe, 
+  onGenerateAnother, 
+  isLoading = false, 
+  errorMsg = '', 
+  onRetry,
+  isLoggedIn = false 
+}: RecipeCardProps) => {
+  // Show skeleton while loading
+  if (isLoading) {
+    return <RecipeSkeleton />;
+  }
+
+  // Show error state
+  if (errorMsg) {
+    return (
+      <section className="section-padding bg-background">
+        <div className="container-narrow">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="card-warm p-8 text-center"
+          >
+            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">😕</span>
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">Oops! Something went wrong</h3>
+            <p className="text-muted-foreground mb-6">{errorMsg}</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              {onRetry && (
+                <motion.button
+                  onClick={onRetry}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="btn-primary flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Try again
+                </motion.button>
+              )}
+              {errorMsg.includes('sign up') && (
+                <motion.a
+                  href="/auth"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="btn-secondary flex items-center justify-center gap-2"
+                >
+                  Create free account
+                </motion.a>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
+
+  // Parse data from either old or new format
+  const displayMealType = recipe.mealType || recipe.meal_category || 'Recipe';
+  const displayTime = recipe.time || (recipe.time_minutes ? `${recipe.time_minutes} min` : 'N/A');
+  const displayServings = recipe.servings || 2;
+  const displayCuisine = recipe.cuisine === 'any_surprise_me' ? 'Surprise' : recipe.cuisine || 'Mixed';
+  const displayTip = recipe.tip || recipe.tips;
+  const displayInstructions = recipe.steps || recipe.instructions || [];
+  
+  // Handle ingredients - can be array of strings or objects
+  const formattedIngredients = recipe.ingredients.map((ing) => {
+    if (typeof ing === 'string') {
+      return ing;
+    }
+    return `${ing.quantity} ${ing.unit} ${ing.name}`.trim();
+  });
+
   return (
     <section className="section-padding bg-background">
       <div className="container-narrow">
@@ -49,26 +189,59 @@ export const RecipeCard = ({ recipe, onGenerateAnother }: RecipeCardProps) => {
           <div className="p-6 sm:p-8">
             {/* Header */}
             <div className="mb-6">
-              <h3 className="text-2xl sm:text-3xl font-bold text-foreground font-serif mb-3">
+              <h3 className="text-2xl sm:text-3xl font-bold text-foreground font-serif mb-2">
                 {recipe.title}
               </h3>
+              {recipe.description_short && (
+                <p className="text-muted-foreground mb-3">{recipe.description_short}</p>
+              )}
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full font-medium">
-                  {recipe.mealType}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full font-medium capitalize">
+                  {displayMealType}
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                   <Clock className="w-4 h-4" />
-                  {recipe.time}
+                  {displayTime}
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                   <Users className="w-4 h-4" />
-                  {recipe.servings} servings
+                  {displayServings} servings
                 </span>
-                <span className="text-muted-foreground">
-                  Cuisine: {recipe.cuisine}
+                {recipe.difficulty && (
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground capitalize">
+                    <ChefHat className="w-4 h-4" />
+                    {recipe.difficulty}
+                  </span>
+                )}
+                <span className="text-muted-foreground capitalize">
+                  {displayCuisine}
                 </span>
               </div>
             </div>
+
+            {/* Nutrition (optional) */}
+            {recipe.nutrition_estimate && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="flex flex-wrap gap-3 mb-6 p-3 bg-secondary/50 rounded-xl"
+              >
+                <span className="inline-flex items-center gap-1 text-sm">
+                  <Flame className="w-4 h-4 text-primary" />
+                  <strong>{recipe.nutrition_estimate.calories}</strong> kcal
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Protein: {recipe.nutrition_estimate.protein}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Carbs: {recipe.nutrition_estimate.carbs}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Fat: {recipe.nutrition_estimate.fat}
+                </span>
+              </motion.div>
+            )}
 
             {/* Ingredients */}
             <div className="mb-6">
@@ -79,7 +252,7 @@ export const RecipeCard = ({ recipe, onGenerateAnother }: RecipeCardProps) => {
                 Ingredients
               </h4>
               <ul className="grid gap-2 sm:grid-cols-2">
-                {recipe.ingredients.map((ingredient, index) => (
+                {formattedIngredients.map((ingredient, index) => (
                   <motion.li
                     key={index}
                     initial={{ opacity: 0, x: -10 }}
@@ -103,7 +276,7 @@ export const RecipeCard = ({ recipe, onGenerateAnother }: RecipeCardProps) => {
                 Instructions
               </h4>
               <ol className="space-y-4">
-                {recipe.steps.map((step, index) => (
+                {displayInstructions.map((step, index) => (
                   <motion.li
                     key={index}
                     initial={{ opacity: 0, y: 10 }}
@@ -121,7 +294,7 @@ export const RecipeCard = ({ recipe, onGenerateAnother }: RecipeCardProps) => {
             </div>
 
             {/* Tip */}
-            {recipe.tip && (
+            {displayTip && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -132,7 +305,7 @@ export const RecipeCard = ({ recipe, onGenerateAnother }: RecipeCardProps) => {
                   <Lightbulb className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold text-foreground text-sm mb-1">Pro tip</p>
-                    <p className="text-muted-foreground text-sm">{recipe.tip}</p>
+                    <p className="text-muted-foreground text-sm">{displayTip}</p>
                   </div>
                 </div>
               </motion.div>
@@ -156,7 +329,7 @@ export const RecipeCard = ({ recipe, onGenerateAnother }: RecipeCardProps) => {
               >
                 <Heart className="w-4 h-4" />
                 Save recipe
-                <Lock className="w-3 h-3 opacity-60" />
+                {!isLoggedIn && <Lock className="w-3 h-3 opacity-60" />}
               </motion.button>
             </div>
           </div>

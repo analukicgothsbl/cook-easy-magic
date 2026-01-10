@@ -100,6 +100,27 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_recipe_allowance: {
+        Row: {
+          first_used_at: string | null
+          guest_id: string
+          last_payload: Json | null
+          used: boolean
+        }
+        Insert: {
+          first_used_at?: string | null
+          guest_id: string
+          last_payload?: Json | null
+          used?: boolean
+        }
+        Update: {
+          first_used_at?: string | null
+          guest_id?: string
+          last_payload?: Json | null
+          used?: boolean
+        }
+        Relationships: []
+      }
       recipe: {
         Row: {
           budget_level: Database["public"]["Enums"]["budget_level"] | null
