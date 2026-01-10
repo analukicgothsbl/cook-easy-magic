@@ -1,16 +1,59 @@
-import { useState, useRef } from 'react';
-import { RecipeForm, type RecipeFormData } from '@/components/RecipeForm';
+import { useState, useRef, useEffect } from 'react';
+import { RecipeForm, type RecipeFormData, type UserDefaultOptions } from '@/components/RecipeForm';
 import { RecipeCard, type Recipe } from '@/components/RecipeCard';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 export function GenerateRecipeView() {
+  const { user } = useAuth();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [recipeId, setRecipeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [lastFormData, setLastFormData] = useState<RecipeFormData | null>(null);
+  const [userDefaults, setUserDefaults] = useState<UserDefaultOptions | undefined>(undefined);
+  const [isLoadingDefaults, setIsLoadingDefaults] = useState(true);
   
   const resultRef = useRef<HTMLDivElement>(null);
+
+  // Fetch user's default options
+  useEffect(() => {
+    const fetchUserOptions = async () => {
+      if (!user) {
+        setIsLoadingDefaults(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_options')
+          .select('time_available, difficulty, cuisine, servings, budget_level, kids_friendly, meal_category')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching user options:', error);
+        } else if (data) {
+          setUserDefaults({
+            time_available: data.time_available,
+            difficulty: data.difficulty,
+            cuisine: data.cuisine,
+            servings: data.servings,
+            budget_level: data.budget_level,
+            kids_friendly: data.kids_friendly,
+            meal_category: data.meal_category,
+          });
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching user options:', err);
+      } finally {
+        setIsLoadingDefaults(false);
+      }
+    };
+
+    fetchUserOptions();
+  }, [user]);
 
   const scrollToResult = () => {
     setTimeout(() => {
@@ -98,6 +141,14 @@ export function GenerateRecipeView() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  if (isLoadingDefaults) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="max-w-4xl mx-auto">
@@ -106,6 +157,7 @@ export function GenerateRecipeView() {
           isLoading={isLoading} 
           isRegistered={true}
           isGuestBlocked={false}
+          defaultValues={userDefaults}
         />
       </div>
       
