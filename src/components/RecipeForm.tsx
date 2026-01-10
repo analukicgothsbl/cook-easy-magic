@@ -214,50 +214,7 @@ export const RecipeForm = ({ onSubmit, isLoading, isRegistered = false }: Recipe
                   </motion.button>
                 ))}
               </div>
-              {!isRegistered && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Create a free account to choose cuisine preferences
-                </p>
-              )}
             </div>
-
-            {/* Submit Button */}
-            <motion.button
-              type="submit"
-              disabled={!isValid || isLoading}
-              whileHover={isValid && !isLoading ? { scale: 1.02 } : {}}
-              whileTap={isValid && !isLoading ? { scale: 0.98 } : {}}
-              className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all duration-300 ${
-                isValid && !isLoading
-                  ? 'bg-primary text-primary-foreground shadow-lg hover:shadow-xl'
-                  : 'bg-muted text-muted-foreground cursor-not-allowed'
-              }`}
-            >
-              <AnimatePresence mode="wait">
-                {isLoading ? (
-                  <motion.span
-                    key="loading"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex items-center gap-2"
-                  >
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Creating your recipe...
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="submit"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex items-center gap-2"
-                  >
-                    🍳 Create my recipe
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
 
             {/* More Options Expandable Section */}
             <div className="border-t border-border pt-4">
@@ -395,17 +352,55 @@ export const RecipeForm = ({ onSubmit, isLoading, isRegistered = false }: Recipe
                           ))}
                         </div>
                       </div>
-
-                      {!isRegistered && (
-                        <p className="text-xs text-muted-foreground text-center">
-                          Create a free account to unlock all options
-                        </p>
-                      )}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Submit Button */}
+            <motion.button
+              type="submit"
+              disabled={!isValid || isLoading}
+              whileHover={isValid && !isLoading ? { scale: 1.02 } : {}}
+              whileTap={isValid && !isLoading ? { scale: 0.98 } : {}}
+              className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all duration-300 ${
+                isValid && !isLoading
+                  ? 'bg-primary text-primary-foreground shadow-lg hover:shadow-xl'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
+              }`}
+            >
+              <AnimatePresence mode="wait">
+                {isLoading ? (
+                  <motion.span
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-2"
+                  >
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Creating your recipe...
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="submit"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-2"
+                  >
+                    🍳 Create my recipe
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+
+            {!isRegistered && (
+              <p className="text-xs text-muted-foreground text-center">
+                Create a free account to choose cuisine preferences
+              </p>
+            )}
           </form>
         </motion.div>
       </div>
