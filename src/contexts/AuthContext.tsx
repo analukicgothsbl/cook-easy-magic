@@ -63,18 +63,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.error('Error creating user_extended:', extendedError);
     }
 
-    // Create user_roles record with cook_master role
-    const { error: rolesError } = await supabase
-      .from('user_roles')
-      .insert({
-        user_id: userId,
-        role: 'cook_master' as const,
-        created_at: new Date().toISOString(),
-      });
-
-    if (rolesError) {
-      console.error('Error creating user_roles:', rolesError);
-    }
 
     // Create credit_usage record for signup bonus
     const { error: usageError } = await supabase
