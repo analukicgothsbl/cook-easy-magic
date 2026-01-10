@@ -6,6 +6,7 @@ import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { OverviewView } from '@/components/dashboard/OverviewView';
 import { GenerateRecipeView } from '@/components/dashboard/GenerateRecipeView';
 import { MyRecipesView } from '@/components/dashboard/MyRecipesView';
+import { FavoriteRecipesView } from '@/components/dashboard/FavoriteRecipesView';
 import { SettingsView } from '@/components/dashboard/SettingsView';
 import { Loader2 } from 'lucide-react';
 
@@ -51,10 +52,11 @@ const Dashboard = () => {
         return <GenerateRecipeView />;
       case 'my-recipes':
         return <MyRecipesView />;
+      case 'favorites':
+        return <FavoriteRecipesView />;
       case 'settings-basic':
       case 'settings-personalized':
         return <SettingsView activeTab={activeView === 'settings-basic' ? 'basic' : 'personalized'} />;
-      case 'favorites':
       case 'cookbook':
       case 'library':
       case 'meal-planner':
