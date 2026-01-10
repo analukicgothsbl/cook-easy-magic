@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb, ChefHat, Flame } from 'lucide-react';
+import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb, ChefHat, Flame, UserPlus, LogIn } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import foodPasta from '@/assets/food-pasta.jpg';
 
 interface Ingredient {
@@ -44,6 +45,7 @@ interface RecipeCardProps {
   errorMsg?: string;
   onRetry?: () => void;
   isLoggedIn?: boolean;
+  isGuestBlocked?: boolean;
 }
 
 // Skeleton loader component
@@ -91,11 +93,60 @@ export const RecipeCard = ({
   isLoading = false, 
   errorMsg = '', 
   onRetry,
-  isLoggedIn = false 
+  isLoggedIn = false,
+  isGuestBlocked = false
 }: RecipeCardProps) => {
+  const navigate = useNavigate();
+
   // Show skeleton while loading
   if (isLoading) {
     return <RecipeSkeleton />;
+  }
+
+  // Show guest limit reached CTA
+  if (isGuestBlocked) {
+    return (
+      <section className="section-padding bg-background">
+        <div className="container-narrow">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="card-warm p-8 text-center"
+          >
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-5">
+              <span className="text-4xl">👋</span>
+            </div>
+            <h3 className="text-2xl font-bold text-foreground mb-3 font-serif">
+              You've used your free recipe
+            </h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Create a free account to unlock more recipes, daily credits, and saved favorites.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <motion.button
+                onClick={() => navigate('/auth')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="btn-primary flex items-center justify-center gap-2 px-6"
+              >
+                <UserPlus className="w-4 h-4" />
+                Create free account
+              </motion.button>
+              <motion.button
+                onClick={() => navigate('/auth')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="btn-secondary flex items-center justify-center gap-2 px-6"
+              >
+                <LogIn className="w-4 h-4" />
+                Login
+              </motion.button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+    );
   }
 
   // Show error state
@@ -125,16 +176,6 @@ export const RecipeCard = ({
                   <RefreshCw className="w-4 h-4" />
                   Try again
                 </motion.button>
-              )}
-              {errorMsg.includes('sign up') && (
-                <motion.a
-                  href="/auth"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="btn-secondary flex items-center justify-center gap-2"
-                >
-                  Create free account
-                </motion.a>
               )}
             </div>
           </motion.div>
