@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb, ChefHat, Flame, UserPlus, LogIn } from 'lucide-react';
+import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb, ChefHat, Flame, UserPlus, LogIn, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import foodPasta from '@/assets/food-pasta.jpg';
 
 interface Ingredient {
@@ -40,6 +43,7 @@ export interface Recipe {
 
 interface RecipeCardProps {
   recipe: Recipe;
+  recipeId?: string;
   onGenerateAnother: () => void;
   isLoading?: boolean;
   errorMsg?: string;
@@ -89,6 +93,7 @@ const RecipeSkeleton = () => (
 
 export const RecipeCard = ({ 
   recipe, 
+  recipeId,
   onGenerateAnother, 
   isLoading = false, 
   errorMsg = '', 
@@ -97,6 +102,54 @@ export const RecipeCard = ({
   isGuestBlocked = false
 }: RecipeCardProps) => {
   const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+
+  const handleSaveRecipe = async () => {
+    if (!isLoggedIn) {
+      setShowSavePrompt(true);
+      return;
+    }
+
+    if (!recipeId) {
+      toast.error('Recipe ID not found');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please log in to save recipes');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('recipe_favorites')
+        .insert({
+          user_id: user.id,
+          recipe_id: recipeId,
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast.info('Recipe already saved!');
+          setIsSaved(true);
+        } else {
+          throw error;
+        }
+      } else {
+        setIsSaved(true);
+        toast.success('Recipe saved to your cookbook!');
+      }
+    } catch (err) {
+      console.error('Error saving recipe:', err);
+      toast.error('Failed to save recipe');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Show skeleton while loading
   if (isLoading) {
@@ -352,6 +405,37 @@ export const RecipeCard = ({
               </motion.div>
             )}
 
+            {/* Save Prompt for Guests */}
+            {showSavePrompt && !isLoggedIn && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-accent rounded-xl border border-primary/20 mb-6"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex gap-3 items-start">
+                    <Heart className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-foreground text-sm mb-1">
+                        Register account, save recipe and make your cook book
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        Create a free account to save unlimited recipes!
+                      </p>
+                    </div>
+                  </div>
+                  <motion.button
+                    onClick={() => navigate('/auth')}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="btn-primary text-sm px-4 py-2 whitespace-nowrap"
+                  >
+                    Create account
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3">
               <motion.button
@@ -364,13 +448,33 @@ export const RecipeCard = ({
                 Generate another recipe
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="btn-outline flex-1 flex items-center justify-center gap-2"
+                onClick={handleSaveRecipe}
+                disabled={isSaving || isSaved}
+                whileHover={{ scale: isSaved ? 1 : 1.02 }}
+                whileTap={{ scale: isSaved ? 1 : 0.98 }}
+                className={`flex-1 flex items-center justify-center gap-2 ${
+                  isSaved 
+                    ? 'btn-primary' 
+                    : 'btn-outline'
+                }`}
               >
-                <Heart className="w-4 h-4" />
-                Save recipe
-                {!isLoggedIn && <Lock className="w-3 h-3 opacity-60" />}
+                {isSaving ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : isSaved ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Saved!
+                  </>
+                ) : (
+                  <>
+                    <Heart className="w-4 h-4" />
+                    Save recipe
+                    {!isLoggedIn && <Lock className="w-3 h-3 opacity-60" />}
+                  </>
+                )}
               </motion.button>
             </div>
           </div>
