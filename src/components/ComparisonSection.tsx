@@ -7,6 +7,7 @@ const freeFeatures = [
   "Surprise-me cuisine",
   "Simple step-by-step instructions",
   "No login required",
+  "No save recipes",
 ];
 
 const accountFeatures = [
