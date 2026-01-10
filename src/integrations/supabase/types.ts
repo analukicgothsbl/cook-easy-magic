@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      credit_bonus: {
+        Row: {
+          daily_bonus: number
+          id: string
+          updated_at: string
+          usage: number
+          user_id: string
+        }
+        Insert: {
+          daily_bonus?: number
+          id?: string
+          updated_at?: string
+          usage?: number
+          user_id: string
+        }
+        Update: {
+          daily_bonus?: number
+          id?: string
+          updated_at?: string
+          usage?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credit_usage: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          reason: Database["public"]["Enums"]["credit_reason"]
+          recipe_id: string | null
+          type: Database["public"]["Enums"]["credit_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          reason: Database["public"]["Enums"]["credit_reason"]
+          recipe_id?: string | null
+          type: Database["public"]["Enums"]["credit_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reason?: Database["public"]["Enums"]["credit_reason"]
+          recipe_id?: string | null
+          type?: Database["public"]["Enums"]["credit_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_usage_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_wallet: {
+        Row: {
+          balance: number
+          daily_remaining: number
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          daily_remaining?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          daily_remaining?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       recipe: {
         Row: {
           budget_level: Database["public"]["Enums"]["budget_level"] | null
@@ -285,6 +371,12 @@ export type Database = {
     Enums: {
       app_role: "admin" | "cook_master"
       budget_level: "cheap" | "normal" | "doesnt_matter"
+      credit_reason:
+        | "signup_bonus"
+        | "friend_bonus"
+        | "generate_recipe"
+        | "generate_recipe_image"
+      credit_type: "income" | "cost"
       cuisine_type:
         | "any_surprise_me"
         | "home_style_traditional"
@@ -427,6 +519,13 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "cook_master"],
       budget_level: ["cheap", "normal", "doesnt_matter"],
+      credit_reason: [
+        "signup_bonus",
+        "friend_bonus",
+        "generate_recipe",
+        "generate_recipe_image",
+      ],
+      credit_type: ["income", "cost"],
       cuisine_type: [
         "any_surprise_me",
         "home_style_traditional",
