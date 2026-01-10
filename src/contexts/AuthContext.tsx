@@ -115,6 +115,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (walletError) {
       console.error('Error creating credit_wallet:', walletError);
     }
+
+    // Create user_options record with default null values
+    const { error: optionsError } = await supabase
+      .from('user_options')
+      .insert({
+        user_id: userId,
+      });
+
+    if (optionsError) {
+      console.error('Error creating user_options:', optionsError);
+    }
   };
 
   const signUp = async (email: string, password: string, name: string) => {
