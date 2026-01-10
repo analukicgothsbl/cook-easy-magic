@@ -17,6 +17,7 @@ interface Stats {
 
 export function OverviewView({ onNavigate }: OverviewViewProps) {
   const { user } = useAuth();
+  const [userName, setUserName] = useState<string>('Chef');
   const [stats, setStats] = useState<Stats>({
     totalRecipes: 0,
     favoriteRecipes: 0,
@@ -25,10 +26,21 @@ export function OverviewView({ onNavigate }: OverviewViewProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       if (!user) return;
 
       try {
+        // Fetch user name from user_extended
+        const { data: userData } = await supabase
+          .from('user_extended')
+          .select('name')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (userData?.name) {
+          setUserName(userData.name);
+        }
+
         // Fetch recipe count
         const { count: recipeCount } = await supabase
           .from('recipe_user')
@@ -46,7 +58,7 @@ export function OverviewView({ onNavigate }: OverviewViewProps) {
           .from('credit_wallet')
           .select('balance, daily_remaining')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         setStats({
           totalRecipes: recipeCount || 0,
@@ -54,13 +66,13 @@ export function OverviewView({ onNavigate }: OverviewViewProps) {
           creditsRemaining: (wallet?.balance || 0) + (wallet?.daily_remaining || 0),
         });
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchStats();
+    fetchData();
   }, [user]);
 
   const statCards = [
@@ -117,7 +129,7 @@ export function OverviewView({ onNavigate }: OverviewViewProps) {
         className="bg-gradient-to-r from-primary/10 to-accent/30 rounded-2xl p-6 border border-primary/20"
       >
         <h2 className="text-2xl font-bold text-foreground mb-2">
-          Welcome back, Chef! 👨‍🍳
+          Welcome back, {userName}! 👨‍🍳
         </h2>
         <p className="text-muted-foreground">
           Ready to create something delicious today?
