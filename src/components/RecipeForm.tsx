@@ -421,6 +421,16 @@ export const RecipeForm = ({ onSubmit, isLoading, isRegistered = false, isGuestB
                     <Loader2 className="w-5 h-5 animate-spin" />
                     Creating your recipe...
                   </motion.span>
+                ) : isGuestBlocked ? (
+                  <motion.span
+                    key="blocked"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-2"
+                  >
+                    Sign up to continue
+                  </motion.span>
                 ) : (
                   <motion.span
                     key="submit"

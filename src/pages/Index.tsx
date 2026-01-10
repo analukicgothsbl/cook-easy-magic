@@ -55,18 +55,48 @@ const Index = () => {
         body: payload,
       });
 
+      // Handle errors from the edge function
       if (error) {
         console.error('Edge function error:', error);
-        const errorMessage = error.message || 'Something went wrong. Please try again.';
         
-        if (errorMessage.includes('Not enough credits')) {
-          setErrorMsg("You don't have enough credits. Please top up.");
-        } else if (errorMessage.includes('Guest free generation already used')) {
-          setErrorMsg("You already used the free guest recipe. Please sign up to continue.");
-          setIsGuestBlocked(true);
+        // Try to extract error message from the response
+        let errorMessage = '';
+        
+        // The error context may contain the response body
+        if (error.context && typeof error.context === 'object') {
+          try {
+            const responseBody = await (error.context as Response).json?.();
+            errorMessage = responseBody?.error || '';
+          } catch {
+            // Fallback to error message
+            errorMessage = error.message || '';
+          }
         } else {
-          setErrorMsg(errorMessage);
+          errorMessage = error.message || '';
         }
+        
+        // Check for guest limit reached (403 with specific message)
+        const isGuestLimitError = 
+          errorMessage.toLowerCase().includes('guest free generation already used') ||
+          errorMessage.toLowerCase().includes('guest free') ||
+          errorMessage.toLowerCase().includes('free generation already used');
+        
+        if (isGuestLimitError) {
+          setIsGuestBlocked(true);
+          setErrorMsg(''); // Clear error to show CTA instead
+          return;
+        }
+        
+        // Check for not enough credits
+        if (errorMessage.toLowerCase().includes('not enough credits')) {
+          setErrorMsg("You don't have enough credits. Please top up or upgrade your plan.");
+          setIsGuestBlocked(false);
+          return;
+        }
+        
+        // Generic error
+        setErrorMsg('Something went wrong. Please try again.');
+        setIsGuestBlocked(false);
         return;
       }
 
@@ -74,14 +104,25 @@ const Index = () => {
       if (responseData?.error) {
         const errorMessage = responseData.error;
         
-        if (errorMessage.includes('Not enough credits')) {
-          setErrorMsg("You don't have enough credits. Please top up.");
-        } else if (errorMessage.includes('Guest free generation already used')) {
-          setErrorMsg("You already used the free guest recipe. Please sign up to continue.");
+        const isGuestLimitError = 
+          errorMessage.toLowerCase().includes('guest free generation already used') ||
+          errorMessage.toLowerCase().includes('guest free') ||
+          errorMessage.toLowerCase().includes('free generation already used');
+        
+        if (isGuestLimitError) {
           setIsGuestBlocked(true);
-        } else {
-          setErrorMsg(errorMessage);
+          setErrorMsg('');
+          return;
         }
+        
+        if (errorMessage.toLowerCase().includes('not enough credits')) {
+          setErrorMsg("You don't have enough credits. Please top up or upgrade your plan.");
+          setIsGuestBlocked(false);
+          return;
+        }
+        
+        setErrorMsg('Something went wrong. Please try again.');
+        setIsGuestBlocked(false);
         return;
       }
 
@@ -95,6 +136,7 @@ const Index = () => {
     } catch (err) {
       console.error('Unexpected error:', err);
       setErrorMsg('Something went wrong. Please try again.');
+      setIsGuestBlocked(false);
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +169,7 @@ const Index = () => {
         />
       </div>
       
-      {(recipe || isLoading || errorMsg) && (
+      {(recipe || isLoading || errorMsg || isGuestBlocked) && (
         <div ref={resultRef}>
           <RecipeCard 
             recipe={recipe || { title: '', ingredients: [] }} 
@@ -136,6 +178,7 @@ const Index = () => {
             errorMsg={errorMsg}
             onRetry={handleRetry}
             isLoggedIn={isLoggedIn}
+            isGuestBlocked={isGuestBlocked}
           />
         </div>
       )}
