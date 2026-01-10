@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, ChefHat, X, Loader2, BookOpen } from 'lucide-react';
+import { Clock, Users, ChefHat, X, Loader2, BookOpen, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { Recipe } from '@/components/RecipeCard';
 import type { Json } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 interface RecipeWithMeta extends Recipe {
   id: string;
@@ -20,14 +21,27 @@ interface Ingredient {
 export function MyRecipesView() {
   const { user } = useAuth();
   const [recipes, setRecipes] = useState<RecipeWithMeta[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeWithMeta | null>(null);
+  const [togglingFavorite, setTogglingFavorite] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchRecipes = async () => {
+    const fetchData = async () => {
       if (!user) return;
 
       try {
+        // Fetch user's favorite recipe IDs
+        const { data: favData } = await supabase
+          .from('recipe_favorites')
+          .select('recipe_id')
+          .eq('user_id', user.id);
+
+        if (favData) {
+          setFavoriteIds(new Set(favData.map(f => f.recipe_id)));
+        }
+
+        // Fetch recipes
         const { data, error } = await supabase
           .from('recipe_user')
           .select(`
@@ -108,8 +122,57 @@ export function MyRecipesView() {
       }
     };
 
-    fetchRecipes();
+    fetchData();
   }, [user]);
+
+  const toggleFavorite = async (e: React.MouseEvent, recipeId: string) => {
+    e.stopPropagation();
+    if (!user || togglingFavorite) return;
+
+    setTogglingFavorite(recipeId);
+    const isFavorited = favoriteIds.has(recipeId);
+
+    try {
+      if (isFavorited) {
+        // Remove from favorites
+        const { error } = await supabase
+          .from('recipe_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('recipe_id', recipeId);
+
+        if (error) throw error;
+
+        setFavoriteIds(prev => {
+          const next = new Set(prev);
+          next.delete(recipeId);
+          return next;
+        });
+        toast.success('Removed from favorites');
+      } else {
+        // Add to favorites
+        const { error } = await supabase
+          .from('recipe_favorites')
+          .insert({ user_id: user.id, recipe_id: recipeId });
+
+        if (error) {
+          if (error.code === '23505') {
+            toast.info('Already in favorites');
+          } else {
+            throw error;
+          }
+        } else {
+          setFavoriteIds(prev => new Set(prev).add(recipeId));
+          toast.success('Added to favorites');
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error('Failed to update favorite');
+    } finally {
+      setTogglingFavorite(null);
+    }
+  };
 
   const formatIngredient = (ing: string | Ingredient): string => {
     if (typeof ing === 'string') return ing;
@@ -145,7 +208,7 @@ export function MyRecipesView() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="card-warm overflow-hidden cursor-pointer hover:border-primary/30 transition-colors"
+            className="card-warm overflow-hidden cursor-pointer hover:border-primary/30 transition-colors relative"
             onClick={() => setSelectedRecipe(recipe)}
           >
             {/* Preview Image Placeholder */}
@@ -184,6 +247,21 @@ export function MyRecipesView() {
               </div>
               <button className="mt-3 text-sm text-primary font-medium hover:underline">
                 Show more...
+              </button>
+              
+              {/* Favorite Heart */}
+              <button
+                onClick={(e) => toggleFavorite(e, recipe.id)}
+                disabled={togglingFavorite === recipe.id}
+                className="absolute bottom-4 right-4 p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
+              >
+                <Heart
+                  className={`w-5 h-5 transition-colors ${
+                    favoriteIds.has(recipe.id)
+                      ? 'text-destructive fill-destructive'
+                      : 'text-muted-foreground hover:text-destructive'
+                  } ${togglingFavorite === recipe.id ? 'animate-pulse' : ''}`}
+                />
               </button>
             </div>
           </motion.div>
