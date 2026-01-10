@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { HeroSection } from '@/components/HeroSection';
-import { RecipeForm, RecipeFormData } from '@/components/RecipeForm';
-import { RecipeCard, Recipe } from '@/components/RecipeCard';
+import { RecipeForm, type RecipeFormData } from '@/components/RecipeForm';
+import { RecipeCard, type Recipe } from '@/components/RecipeCard';
 import { ComparisonSection } from '@/components/ComparisonSection';
 import { ImageGallery } from '@/components/ImageGallery';
 import { TrustSection } from '@/components/TrustSection';
@@ -130,9 +130,12 @@ const Index = () => {
   const handleFormSubmit = (data: RecipeFormData) => {
     setIsLoading(true);
     
+    // Log the payload for debugging
+    console.log('Recipe form payload:', data);
+    
     // Simulate API call
     setTimeout(() => {
-      const selectedRecipe = sampleRecipes[data.mealType.toLowerCase()] || sampleRecipes.lunch;
+      const selectedRecipe = sampleRecipes[data.meal_category] || sampleRecipes.lunch;
       setRecipe(selectedRecipe);
       setIsLoading(false);
       scrollToResult();
