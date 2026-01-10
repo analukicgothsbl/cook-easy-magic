@@ -51,12 +51,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const initializeUserData = async (userId: string, name: string) => {
-    // Create user_extended record
+    // Create user_extended record with role
     const { error: extendedError } = await supabase
       .from('user_extended')
       .insert({
         user_id: userId,
         name: name,
+        role: 'cook_master' as const,
       });
 
     if (extendedError) {
