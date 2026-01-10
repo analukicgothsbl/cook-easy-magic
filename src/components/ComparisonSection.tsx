@@ -4,10 +4,10 @@ import grilledChicken from "@/assets/grilled-chicken.jpg";
 
 const freeFeatures = [
   "Generate 1 recipe idea",
-  "Surprise-me cuisine",
+  "Surprise-me cuisine only",
   "Simple step-by-step instructions",
   "No login required",
-  "No saving recipes",
+  "No save recipes",
 ];
 
 const accountFeatures = [
