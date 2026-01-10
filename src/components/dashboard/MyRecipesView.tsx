@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 interface RecipeWithMeta extends Recipe {
   id: string;
   created_at: string;
+  image_url?: string;
 }
 
 interface Ingredient {
@@ -22,6 +23,7 @@ export function MyRecipesView() {
   const { user } = useAuth();
   const [recipes, setRecipes] = useState<RecipeWithMeta[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [recipeImages, setRecipeImages] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeWithMeta | null>(null);
   const [togglingFavorite, setTogglingFavorite] = useState<string | null>(null);
@@ -115,6 +117,25 @@ export function MyRecipesView() {
           });
 
         setRecipes(formattedRecipes);
+
+        // Fetch recipe images
+        if (formattedRecipes.length > 0) {
+          const recipeIds = formattedRecipes.map(r => r.id);
+          const { data: imageData } = await supabase
+            .from('recipe_image')
+            .select('recipe_id, image_url')
+            .in('recipe_id', recipeIds);
+
+          if (imageData) {
+            const imageMap: Record<string, string> = {};
+            imageData.forEach(img => {
+              if (img.image_url) {
+                imageMap[img.recipe_id] = img.image_url;
+              }
+            });
+            setRecipeImages(imageMap);
+          }
+        }
       } catch (error) {
         console.error('Error:', error);
       } finally {
@@ -211,9 +232,17 @@ export function MyRecipesView() {
             className="card-warm overflow-hidden cursor-pointer hover:border-primary/30 transition-colors relative"
             onClick={() => setSelectedRecipe(recipe)}
           >
-            {/* Preview Image Placeholder */}
-            <div className="h-40 bg-gradient-to-br from-primary/10 to-accent/20 flex items-center justify-center">
-              <ChefHat className="w-12 h-12 text-primary/40" />
+            {/* Recipe Image */}
+            <div className="h-40 bg-gradient-to-br from-primary/10 to-accent/20 flex items-center justify-center overflow-hidden">
+              {recipeImages[recipe.id] ? (
+                <img 
+                  src={recipeImages[recipe.id]} 
+                  alt={recipe.title} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <ChefHat className="w-12 h-12 text-primary/40" />
+              )}
             </div>
             
             {/* Content */}
