@@ -68,7 +68,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       .from('user_roles')
       .insert({
         user_id: userId,
-        role: 'cook_master',
+        role: 'cook_master' as const,
+        created_at: new Date().toISOString(),
       });
 
     if (rolesError) {
@@ -116,11 +117,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.error('Error creating credit_wallet:', walletError);
     }
 
-    // Create user_options record with default null values
+    // Create user_options record with specified defaults
     const { error: optionsError } = await supabase
       .from('user_options')
       .insert({
         user_id: userId,
+        cuisine: null,
+        meal_category: null,
+        time_available: null,
+        difficulty: null,
+        kids_friendly: false,
+        budget_level: null,
+        servings: 2,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
 
     if (optionsError) {
