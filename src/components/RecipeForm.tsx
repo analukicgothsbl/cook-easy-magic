@@ -3,11 +3,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Lock, Loader2, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+export interface UserDefaultOptions {
+  time_available?: string | null;
+  difficulty?: string | null;
+  cuisine?: string | null;
+  servings?: number | null;
+  budget_level?: string | null;
+  kids_friendly?: boolean | null;
+  meal_category?: string | null;
+}
+
 interface RecipeFormProps {
   onSubmit: (data: RecipeFormData) => void;
   isLoading: boolean;
   isRegistered?: boolean;
   isGuestBlocked?: boolean;
+  defaultValues?: UserDefaultOptions;
 }
 
 export interface RecipeFormData {
@@ -52,19 +63,19 @@ const kidsFriendlyOptions = [
   { id: 'no', label: 'No', value: false },
 ];
 
-export const RecipeForm = ({ onSubmit, isLoading, isRegistered = false, isGuestBlocked = false }: RecipeFormProps) => {
+export const RecipeForm = ({ onSubmit, isLoading, isRegistered = false, isGuestBlocked = false, defaultValues }: RecipeFormProps) => {
   const navigate = useNavigate();
   const [ingredients, setIngredients] = useState('');
-  const [mealType, setMealType] = useState('');
-  const [timeAvailable, setTimeAvailable] = useState('');
-  const [cuisine, setCuisine] = useState('any_surprise_me');
+  const [mealType, setMealType] = useState(defaultValues?.meal_category ? defaultValues.meal_category.charAt(0).toUpperCase() + defaultValues.meal_category.slice(1) : '');
+  const [timeAvailable, setTimeAvailable] = useState(defaultValues?.time_available || '');
+  const [cuisine, setCuisine] = useState(defaultValues?.cuisine || 'any_surprise_me');
   const [moreOptionsExpanded, setMoreOptionsExpanded] = useState(false);
   
-  // More options state
-  const [difficulty, setDifficulty] = useState<string | null>(null);
-  const [servings, setServings] = useState(2);
-  const [budgetLevel, setBudgetLevel] = useState<string | null>(null);
-  const [kidsFriendly, setKidsFriendly] = useState<boolean | null>(null);
+  // More options state - initialized from defaultValues
+  const [difficulty, setDifficulty] = useState<string | null>(defaultValues?.difficulty || null);
+  const [servings, setServings] = useState(defaultValues?.servings || 2);
+  const [budgetLevel, setBudgetLevel] = useState<string | null>(defaultValues?.budget_level || null);
+  const [kidsFriendly, setKidsFriendly] = useState<boolean | null>(defaultValues?.kids_friendly ?? null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
