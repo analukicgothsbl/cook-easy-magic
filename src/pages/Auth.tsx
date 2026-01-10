@@ -51,7 +51,7 @@ const Auth = () => {
             title: "Welcome to Cook Master! 🎉",
             description: "Your account has been created.",
           });
-          navigate("/");
+          navigate("/dashboard");
         }
       } else {
         const { error } = await signIn(email, password);
@@ -67,7 +67,7 @@ const Auth = () => {
             title: "Welcome back! 👨‍🍳",
             description: "You have successfully logged in.",
           });
-          navigate("/");
+          navigate("/dashboard");
         }
       }
     } finally {

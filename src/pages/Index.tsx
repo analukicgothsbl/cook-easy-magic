@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { HeroSection } from '@/components/HeroSection';
 import { RecipeForm, type RecipeFormData } from '@/components/RecipeForm';
@@ -20,9 +21,16 @@ const Index = () => {
   
   const formRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const { guestId, isLoggedIn, isLoading: guestLoading } = useGuestMode();
 
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (!guestLoading && isLoggedIn) {
+      navigate('/dashboard');
+    }
+  }, [isLoggedIn, guestLoading, navigate]);
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
