@@ -124,6 +124,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         password,
         options: {
           emailRedirectTo: window.location.origin,
+          data: {
+            display_name: name,
+          },
         },
       });
 
