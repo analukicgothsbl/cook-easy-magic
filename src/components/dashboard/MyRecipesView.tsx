@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Users, ChefHat, X, Loader2, BookOpen, Heart, ArrowUpDown, Flame, Wheat, Droplets } from "lucide-react";
+import { Clock, Users, ChefHat, X, Loader2, BookOpen, Heart, Flame, Wheat, Droplets } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Recipe } from "@/components/RecipeCard";
@@ -8,7 +8,9 @@ import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type SortOption = "newest" | "meal_category" | "cuisine" | "time_minutes";
+type MealCategoryFilter = "all" | "breakfast" | "lunch" | "dinner" | "dessert" | "snack";
+type CuisineFilter = "all" | "any_surprise_me" | "home_style_traditional" | "italian" | "mediterranean" | "mexican" | "asian" | "balkan" | "healthy_light" | "comfort_food";
+type TimeSort = "none" | "asc" | "desc";
 
 interface RecipeWithMeta extends Recipe {
   id: string;
@@ -30,22 +32,48 @@ export function MyRecipesView() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeWithMeta | null>(null);
   const [togglingFavorite, setTogglingFavorite] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [mealFilter, setMealFilter] = useState<MealCategoryFilter>("all");
+  const [cuisineFilter, setCuisineFilter] = useState<CuisineFilter>("all");
+  const [timeSort, setTimeSort] = useState<TimeSort>("none");
 
-  const sortedRecipes = useMemo(() => {
-    const sorted = [...recipes];
-    switch (sortBy) {
-      case "meal_category":
-        return sorted.sort((a, b) => (a.meal_category || "").localeCompare(b.meal_category || ""));
-      case "cuisine":
-        return sorted.sort((a, b) => (a.cuisine || "").localeCompare(b.cuisine || ""));
-      case "time_minutes":
-        return sorted.sort((a, b) => (a.time_minutes || 999) - (b.time_minutes || 999));
-      case "newest":
-      default:
-        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const filteredAndSortedRecipes = useMemo(() => {
+    let result = [...recipes];
+    
+    // Apply meal category filter
+    if (mealFilter !== "all") {
+      result = result.filter((r) => r.meal_category === mealFilter);
     }
-  }, [recipes, sortBy]);
+    
+    // Apply cuisine filter
+    if (cuisineFilter !== "all") {
+      result = result.filter((r) => r.cuisine === cuisineFilter);
+    }
+    
+    // Apply time sort
+    if (timeSort === "asc") {
+      result.sort((a, b) => (a.time_minutes || 999) - (b.time_minutes || 999));
+    } else if (timeSort === "desc") {
+      result.sort((a, b) => (b.time_minutes || 0) - (a.time_minutes || 0));
+    } else {
+      // Default: newest first
+      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+    
+    return result;
+  }, [recipes, mealFilter, cuisineFilter, timeSort]);
+
+  const cuisineLabels: Record<CuisineFilter, string> = {
+    all: "All Cuisines",
+    any_surprise_me: "Any",
+    home_style_traditional: "Traditional",
+    italian: "Italian",
+    mediterranean: "Mediterranean",
+    mexican: "Mexican",
+    asian: "Asian",
+    balkan: "Balkan",
+    healthy_light: "Healthy Light",
+    comfort_food: "Comfort Food",
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -236,25 +264,57 @@ export function MyRecipesView() {
 
   return (
     <div className="p-6">
-      {/* Sort Options */}
-      <div className="flex items-center gap-3 mb-6">
-        <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Sort by:</span>
-        <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sort by..." />
+      {/* Filter Options - Aligned Right */}
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
+        {/* Meal Category Filter */}
+        <Select value={mealFilter} onValueChange={(value: MealCategoryFilter) => setMealFilter(value)}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Meal Category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="newest">Newest First</SelectItem>
-            <SelectItem value="meal_category">Meal Category</SelectItem>
-            <SelectItem value="cuisine">Cuisine</SelectItem>
-            <SelectItem value="time_minutes">Cooking Time</SelectItem>
+            <SelectItem value="all">All Meals</SelectItem>
+            <SelectItem value="breakfast">Breakfast</SelectItem>
+            <SelectItem value="lunch">Lunch</SelectItem>
+            <SelectItem value="dinner">Dinner</SelectItem>
+            <SelectItem value="dessert">Dessert</SelectItem>
+            <SelectItem value="snack">Snack</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Cuisine Filter */}
+        <Select value={cuisineFilter} onValueChange={(value: CuisineFilter) => setCuisineFilter(value)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Cuisine" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Cuisines</SelectItem>
+            <SelectItem value="any_surprise_me">Any</SelectItem>
+            <SelectItem value="home_style_traditional">Traditional</SelectItem>
+            <SelectItem value="italian">Italian</SelectItem>
+            <SelectItem value="mediterranean">Mediterranean</SelectItem>
+            <SelectItem value="mexican">Mexican</SelectItem>
+            <SelectItem value="asian">Asian</SelectItem>
+            <SelectItem value="balkan">Balkan</SelectItem>
+            <SelectItem value="healthy_light">Healthy Light</SelectItem>
+            <SelectItem value="comfort_food">Comfort Food</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Cooking Time Sort */}
+        <Select value={timeSort} onValueChange={(value: TimeSort) => setTimeSort(value)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Cooking Time" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Newest First</SelectItem>
+            <SelectItem value="asc">Time: Low to High</SelectItem>
+            <SelectItem value="desc">Time: High to Low</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {sortedRecipes.map((recipe, index) => (
+        {filteredAndSortedRecipes.map((recipe, index) => (
           <motion.div
             key={recipe.id}
             initial={{ opacity: 0, y: 20 }}
@@ -277,26 +337,35 @@ export function MyRecipesView() {
             </div>
 
             {/* Content */}
-            <div className="p-3">
-              <h3 className="font-bold text-foreground mb-1 line-clamp-1 text-sm">{recipe.title}</h3>
-              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="p-4">
+              <h3 className="font-bold text-foreground mb-2 line-clamp-1">{recipe.title}</h3>
+              {recipe.description_short && (
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                  {recipe.description_short}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 {recipe.meal_category && (
-                  <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full capitalize text-[10px]">
+                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full capitalize">
                     {recipe.meal_category}
                   </span>
                 )}
-                {recipe.cuisine && (
-                  <span className="px-2 py-0.5 bg-accent/50 text-foreground rounded-full capitalize text-[10px]">
-                    {recipe.cuisine}
+                {recipe.time_minutes && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {recipe.time_minutes} min
                   </span>
                 )}
-                {recipe.time_minutes && (
-                  <span className="flex items-center gap-0.5">
-                    <Clock className="w-3 h-3" />
-                    {recipe.time_minutes}m
+                {recipe.servings && (
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {recipe.servings} servings
                   </span>
                 )}
               </div>
+              <button className="mt-3 text-sm text-primary font-medium hover:underline">
+                Show more...
+              </button>
             </div>
 
             {/* Favorite Heart */}
@@ -363,7 +432,7 @@ export function MyRecipesView() {
                   {selectedRecipe.servings && (
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <Users className="w-4 h-4" />
-                      {selectedRecipe.servings}
+                      {selectedRecipe.servings} servings
                     </span>
                   )}
                   {selectedRecipe.difficulty && (
@@ -448,19 +517,17 @@ export function MyRecipesView() {
                         <div className="w-5 h-5 mx-auto mb-1 flex items-center justify-center text-red-500 font-bold text-sm">
                           P
                         </div>
-                        <p className="text-lg font-bold text-foreground">
-                          {selectedRecipe.nutrition_estimate.protein}g
-                        </p>
+                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.protein}</p>
                         <p className="text-xs text-muted-foreground">Protein</p>
                       </div>
                       <div className="bg-accent/50 rounded-xl p-3 text-center">
                         <Wheat className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.carbs}g</p>
+                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.carbs}</p>
                         <p className="text-xs text-muted-foreground">Carbs</p>
                       </div>
                       <div className="bg-accent/50 rounded-xl p-3 text-center">
                         <Droplets className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
-                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.fat}g</p>
+                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.fat}</p>
                         <p className="text-xs text-muted-foreground">Fat</p>
                       </div>
                     </div>
