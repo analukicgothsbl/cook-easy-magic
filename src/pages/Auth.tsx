@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChefHat, Eye, EyeOff, Mail, Lock, User, ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 type AuthMode = "login" | "signup";
 
 const Auth = () => {
-  const [mode, setMode] = useState<AuthMode>("login");
+  const location = useLocation();
+  const initialMode = (location.state as { mode?: AuthMode })?.mode || "login";
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
