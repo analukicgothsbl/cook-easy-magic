@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { User, Lock, Trash2, Loader2, Save, Check, Sliders, CreditCard, Upload, Camera, DollarSign, Heart, Copy } from 'lucide-react';
+import { User, Lock, Trash2, Loader2, Save, Check, Sliders, CreditCard, Upload, Camera, DollarSign, Heart, Copy, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -15,6 +15,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type TimeAvailable = Database['public']['Enums']['time_available'];
 type DifficultyLevel = Database['public']['Enums']['difficulty_level'];
@@ -22,8 +29,9 @@ type CuisineType = Database['public']['Enums']['cuisine_type'];
 type BudgetLevel = Database['public']['Enums']['budget_level'];
 type CreditReason = Database['public']['Enums']['credit_reason'];
 type CreditType = Database['public']['Enums']['credit_type'];
+type AppRole = Database['public']['Enums']['app_role'];
 
-type SettingsTab = 'basic' | 'personalized' | 'credit-usage' | 'credit-billing';
+type SettingsTab = 'basic' | 'personalized' | 'credit-usage' | 'credit-billing' | 'credit-manage';
 
 interface UserOptions {
   time_available: TimeAvailable | null;
@@ -77,10 +85,27 @@ const timeOptions: { id: TimeAvailable; label: string }[] = [
 ];
 
 const settingsMenuItems = [
-  { id: 'basic' as const, title: 'Basic', icon: User },
-  { id: 'personalized' as const, title: 'Personalized Options', icon: Sliders },
-  { id: 'credit-usage' as const, title: 'Credit Usage', icon: CreditCard },
-  { id: 'credit-billing' as const, title: 'Credit Billing', icon: DollarSign },
+  { id: 'basic' as const, title: 'Basic', icon: User, adminOnly: false },
+  { id: 'personalized' as const, title: 'Personalized Options', icon: Sliders, adminOnly: false },
+  { id: 'credit-usage' as const, title: 'Credit Usage', icon: CreditCard, adminOnly: false },
+  { id: 'credit-billing' as const, title: 'Credit Billing', icon: DollarSign, adminOnly: false },
+  { id: 'credit-manage' as const, title: 'Credit Manage', icon: Shield, adminOnly: true },
+];
+
+const creditTypeOptions: { id: CreditType; label: string }[] = [
+  { id: 'income', label: 'Income (+)' },
+  { id: 'cost', label: 'Cost (-)' },
+];
+
+const creditReasonOptions: { id: CreditReason; label: string }[] = [
+  { id: 'signup_bonus', label: 'Signup Bonus' },
+  { id: 'friend_bonus', label: 'Friend Referral' },
+  { id: 'generate_recipe', label: 'Recipe Generation' },
+  { id: 'generate_recipe_image', label: 'Image Generation' },
+  { id: 'bonus_credit', label: 'Bonus Credit' },
+  { id: 'donate_bonus', label: 'Donation Bonus' },
+  { id: 'purchased_credit', label: 'Purchased Credit' },
+  { id: 'admin_bonus', label: 'Admin Bonus' },
 ];
 
 const creditPackages = [
@@ -132,21 +157,33 @@ export function SettingsView() {
   const [creditUsage, setCreditUsage] = useState<CreditUsageRow[]>([]);
   const [wallet, setWallet] = useState<CreditWallet>({ balance: 0, dailyRemaining: 0 });
 
+  // User role state
+  const [userRole, setUserRole] = useState<AppRole | null>(null);
+
+  // Credit manage state (admin only)
+  const [allUsers, setAllUsers] = useState<{ user_id: string; email: string }[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [manageType, setManageType] = useState<CreditType>('income');
+  const [manageAmount, setManageAmount] = useState<string>('');
+  const [manageReason, setManageReason] = useState<CreditReason>('admin_bonus');
+  const [isManaging, setIsManaging] = useState(false);
+
   useEffect(() => {
     const fetchUserData = async () => {
       if (!user) return;
 
       try {
-        // Fetch user extended info
+        // Fetch user extended info including role
         const { data: extendedData } = await supabase
           .from('user_extended')
-          .select('name, profile_picture')
+          .select('name, profile_picture, role')
           .eq('user_id', user.id)
           .single();
 
         if (extendedData) {
           if (extendedData.name) setDisplayName(extendedData.name);
           if (extendedData.profile_picture) setProfilePicture(extendedData.profile_picture);
+          if (extendedData.role) setUserRole(extendedData.role);
         }
 
         // Fetch user options
@@ -332,6 +369,144 @@ export function SettingsView() {
       toast.error('Failed to save preferences');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Fetch all users for admin credit management
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      if (!user || userRole !== 'admin') return;
+
+      try {
+        // Fetch all users from user_extended and their auth emails
+        const { data: usersData, error } = await supabase
+          .from('user_extended')
+          .select('user_id');
+
+        if (error) throw error;
+
+        // We need to get emails - but we can't access auth.users directly
+        // So we'll use a workaround by fetching from credit_wallet or showing user_id
+        // For now, let's fetch user emails from the auth context or use user_id
+        if (usersData) {
+          // Map user_id to email - we'll need to get this from somewhere
+          // For admin to see all users, we need to create an edge function or use a view
+          // For now, let's just use user_id as identifier and admin can input email
+          setAllUsers(usersData.map(u => ({ user_id: u.user_id, email: u.user_id })));
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+
+    fetchAllUsers();
+  }, [user, userRole]);
+
+  const handleManageCredits = async () => {
+    if (!user || userRole !== 'admin') {
+      toast.error('Admin access required');
+      return;
+    }
+
+    if (!selectedUserId) {
+      toast.error('Please enter a user email');
+      return;
+    }
+
+    const amount = parseFloat(manageAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    setIsManaging(true);
+
+    try {
+      // First, find the user_id by email from auth (we need to look up by email)
+      // Since we can't access auth.users directly, we'll assume selectedUserId is the email
+      // and we need an edge function to get the user_id from email
+      // For now, let's check if the email exists in user_extended by querying differently
+      
+      // Get user_id from email by calling Supabase with service role (edge function needed)
+      // Workaround: Admin enters the user's email, we search user_extended or try to match
+      
+      // Let's try to get user by looking at auth.users via an RPC or just use the input as user_id for testing
+      // For a proper implementation, you'd need an edge function
+      
+      // For now, let's search by the pattern in user_extended or assume it's direct user_id input
+      let targetUserId = selectedUserId;
+      
+      // If it looks like an email, try to find the user
+      if (selectedUserId.includes('@')) {
+        // We need to search - but user_extended doesn't have email
+        // This requires an edge function to look up auth.users
+        // For now, show error that we need user_id
+        toast.error('Please enter the user ID (UUID). Email lookup requires additional setup.');
+        setIsManaging(false);
+        return;
+      }
+
+      // Insert credit usage record
+      const { error: usageError } = await supabase
+        .from('credit_usage')
+        .insert({
+          user_id: targetUserId,
+          type: manageType,
+          amount: amount,
+          reason: manageReason,
+          created_at: new Date().toISOString(),
+        });
+
+      if (usageError) throw usageError;
+
+      // Get current wallet balance
+      const { data: currentWallet } = await supabase
+        .from('credit_wallet')
+        .select('balance')
+        .eq('user_id', targetUserId)
+        .maybeSingle();
+
+      const currentBalance = currentWallet?.balance || 0;
+      const newBalance = manageType === 'income' 
+        ? currentBalance + amount 
+        : currentBalance - amount;
+
+      // Update or insert wallet
+      if (currentWallet) {
+        const { error: walletError } = await supabase
+          .from('credit_wallet')
+          .update({ 
+            balance: newBalance,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', targetUserId);
+
+        if (walletError) throw walletError;
+      } else {
+        const { error: walletError } = await supabase
+          .from('credit_wallet')
+          .insert({
+            user_id: targetUserId,
+            balance: newBalance,
+            daily_remaining: 0,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (walletError) throw walletError;
+      }
+
+      toast.success(`Successfully ${manageType === 'income' ? 'added' : 'deducted'} ${amount} credits`);
+      
+      // Reset form
+      setSelectedUserId('');
+      setManageAmount('');
+      setManageType('income');
+      setManageReason('admin_bonus');
+    } catch (error) {
+      console.error('Error managing credits:', error);
+      toast.error('Failed to manage credits. Check if user ID is valid.');
+    } finally {
+      setIsManaging(false);
     }
   };
 
@@ -812,6 +987,135 @@ export function SettingsView() {
     </motion.div>
   );
 
+  const renderCreditManage = () => {
+    const isAdmin = userRole === 'admin';
+
+    if (!isAdmin) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card-warm p-6"
+        >
+          <div className="text-center py-8">
+            <Shield className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground">Admin access required</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              This section is only available to administrators.
+            </p>
+          </div>
+        </motion.div>
+      );
+    }
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-6"
+      >
+        <div className="card-warm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Manage User Credits</h3>
+              <p className="text-sm text-muted-foreground">Add or deduct credits for any user</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* User ID Input */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                User ID (UUID)
+              </label>
+              <input
+                type="text"
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                placeholder="Enter user ID (e.g., 123e4567-e89b-12d3-a456-426614174000)"
+                className="input-warm w-full"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Find user ID in the database user_extended table
+              </p>
+            </div>
+
+            {/* Credit Type */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Type
+              </label>
+              <Select value={manageType} onValueChange={(value) => setManageType(value as CreditType)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {creditTypeOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Amount */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Amount
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={manageAmount}
+                onChange={(e) => setManageAmount(e.target.value)}
+                placeholder="0.00"
+                className="input-warm w-full"
+              />
+            </div>
+
+            {/* Reason */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Reason
+              </label>
+              <Select value={manageReason} onValueChange={(value) => setManageReason(value as CreditReason)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {creditReasonOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              onClick={handleManageCredits}
+              disabled={isManaging || !selectedUserId || !manageAmount}
+              className="btn-primary w-full flex items-center justify-center gap-2 mt-6"
+            >
+              {isManaging ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {manageType === 'income' ? 'Add Credits' : 'Deduct Credits'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'basic':
@@ -822,6 +1126,8 @@ export function SettingsView() {
         return renderCreditUsage();
       case 'credit-billing':
         return renderCreditBilling();
+      case 'credit-manage':
+        return renderCreditManage();
       default:
         return renderBasicSettings();
     }
@@ -832,20 +1138,37 @@ export function SettingsView() {
       {/* Left Sub-Menu (1/3) */}
       <div className="w-1/3 max-w-[280px] border-r border-border p-4 bg-card/50">
         <nav className="space-y-1">
-          {settingsMenuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                activeTab === item.id
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.title}</span>
-            </button>
-          ))}
+          {settingsMenuItems.map((item) => {
+            const isAdminOnly = item.adminOnly;
+            const isDisabled = isAdminOnly && userRole !== 'admin';
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => !isDisabled && setActiveTab(item.id)}
+                disabled={isDisabled}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  activeTab === item.id
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : isDisabled
+                    ? 'text-muted-foreground/50 cursor-not-allowed'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span>{item.title}</span>
+                {isAdminOnly && (
+                  <span className={`ml-auto text-xs px-1.5 py-0.5 rounded ${
+                    userRole === 'admin' 
+                      ? 'bg-primary/10 text-primary' 
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    Admin
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
       </div>
 
