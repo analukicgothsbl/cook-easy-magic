@@ -42,6 +42,11 @@ interface CreditUsageRow {
   created_at: string;
 }
 
+interface CreditWallet {
+  balance: number;
+  dailyRemaining: number;
+}
+
 const cuisineOptions: { id: CuisineType; label: string }[] = [
   { id: 'any_surprise_me', label: 'Any – Surprise me' },
   { id: 'home_style_traditional', label: 'Home-style / Traditional' },
@@ -114,6 +119,7 @@ export function SettingsView() {
 
   // Credit usage state
   const [creditUsage, setCreditUsage] = useState<CreditUsageRow[]>([]);
+  const [wallet, setWallet] = useState<CreditWallet>({ balance: 0, dailyRemaining: 0 });
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -160,6 +166,18 @@ export function SettingsView() {
         if (usageData) {
           setCreditUsage(usageData);
         }
+
+        // Fetch credit wallet
+        const { data: walletData } = await supabase
+          .from('credit_wallet')
+          .select('balance, daily_remaining')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        setWallet({
+          balance: walletData?.balance || 0,
+          dailyRemaining: walletData?.daily_remaining || 0,
+        });
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -589,13 +607,53 @@ export function SettingsView() {
     </motion.div>
   );
 
-  const renderCreditUsage = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="card-warm p-6"
-    >
-      <h3 className="text-lg font-semibold text-foreground mb-6">Credit Usage History</h3>
+  const renderCreditUsage = () => {
+    const totalCredits = wallet.balance + wallet.dailyRemaining;
+    const maxDisplayCredits = Math.max(totalCredits, 10);
+    const balancePercent = (wallet.balance / maxDisplayCredits) * 100;
+    const dailyPercent = (wallet.dailyRemaining / maxDisplayCredits) * 100;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-6"
+      >
+        {/* Current Balance Card */}
+        <div className="card-warm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-foreground">Current Balance</h3>
+            <span className="text-sm text-muted-foreground">
+              {totalCredits.toFixed(2)} credits left
+            </span>
+          </div>
+          <div className="relative h-3 bg-muted rounded-full overflow-hidden">
+            {/* Balance portion (blue) */}
+            <div
+              className="absolute left-0 top-0 h-full bg-primary transition-all duration-500"
+              style={{ width: `${balancePercent}%` }}
+            />
+            {/* Daily remaining portion (lighter blue/cyan) */}
+            <div
+              className="absolute top-0 h-full bg-sky-400 transition-all duration-500"
+              style={{ left: `${balancePercent}%`, width: `${dailyPercent}%` }}
+            />
+          </div>
+          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              <span>Balance: {wallet.balance.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-sky-400" />
+              <span>Daily Bonus: {wallet.dailyRemaining.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Credit Usage History */}
+        <div className="card-warm p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-6">Credit Usage History</h3>
       
       {creditUsage.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
@@ -638,10 +696,12 @@ export function SettingsView() {
               ))}
             </TableBody>
           </Table>
+          </div>
+        )}
         </div>
-      )}
-    </motion.div>
-  );
+      </motion.div>
+    );
+  };
 
   const renderContent = () => {
     switch (activeTab) {

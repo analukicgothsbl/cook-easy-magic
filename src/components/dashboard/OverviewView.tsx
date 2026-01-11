@@ -313,7 +313,7 @@ export function OverviewView({ onNavigate }: OverviewViewProps) {
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-foreground">Credits</span>
           <span className="text-sm text-muted-foreground">
-            {isLoading ? '...' : `${totalCredits.toFixed(1)} left`}
+            {isLoading ? '...' : `${totalCredits.toFixed(2)} left`}
           </span>
         </div>
         <div className="relative h-3 bg-muted rounded-full overflow-hidden">
@@ -331,11 +331,11 @@ export function OverviewView({ onNavigate }: OverviewViewProps) {
         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-            <span>Balance: {wallet.balance.toFixed(1)}</span>
+            <span>Balance: {wallet.balance.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-sky-400" />
-            <span>Daily Bonus: {wallet.dailyRemaining.toFixed(1)}</span>
+            <span>Daily Bonus: {wallet.dailyRemaining.toFixed(2)}</span>
           </div>
         </div>
       </motion.div>
