@@ -206,7 +206,7 @@ export function FavoriteRecipesView() {
                   onClick={() => setSelectedRecipe(recipe)}
                 >
                   {/* Square Recipe Image */}
-                  <div className="w-28 h-28 md:w-32 md:h-32 flex-shrink-0 bg-gradient-to-br from-destructive/10 to-primary/10 flex items-center justify-center relative overflow-hidden">
+                  <div className="w-28 h-28 md:w-32 md:h-32 flex-shrink-0 bg-gradient-to-br from-destructive/10 to-primary/10 flex items-center justify-center overflow-hidden">
                     {recipeImages[recipe.id] ? (
                       <img 
                         src={recipeImages[recipe.id]} 
@@ -216,7 +216,6 @@ export function FavoriteRecipesView() {
                     ) : (
                       <ChefHat className="w-10 h-10 text-primary/40" />
                     )}
-                    <Heart className="absolute top-2 right-2 w-4 h-4 text-destructive fill-destructive" />
                   </div>
                   
                   {/* Content */}
@@ -251,9 +250,12 @@ export function FavoriteRecipesView() {
                           </span>
                         )}
                       </div>
-                      <button className="mt-2 text-xs md:text-sm text-primary font-medium hover:underline">
-                        Show more...
-                      </button>
+                      <div className="flex items-center justify-between mt-2">
+                        <button className="text-xs md:text-sm text-primary font-medium hover:underline">
+                          Show more...
+                        </button>
+                        <Heart className="w-4 h-4 text-destructive fill-destructive" />
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -278,7 +280,7 @@ export function FavoriteRecipesView() {
                 className="card-warm overflow-hidden cursor-pointer hover:border-primary/30 transition-colors flex flex-row"
                 onClick={() => setSelectedRecipe(recipe)}
               >
-                <div className="w-28 h-28 md:w-32 md:h-32 flex-shrink-0 bg-gradient-to-br from-destructive/10 to-primary/10 flex items-center justify-center relative overflow-hidden">
+                <div className="w-28 h-28 md:w-32 md:h-32 flex-shrink-0 bg-gradient-to-br from-destructive/10 to-primary/10 flex items-center justify-center overflow-hidden">
                   {recipeImages[recipe.id] ? (
                     <img 
                       src={recipeImages[recipe.id]} 
@@ -288,7 +290,6 @@ export function FavoriteRecipesView() {
                   ) : (
                     <ChefHat className="w-10 h-10 text-primary/40" />
                   )}
-                  <Heart className="absolute top-2 right-2 w-4 h-4 text-destructive fill-destructive" />
                 </div>
                 <div className="p-3 flex flex-col justify-between flex-1 min-w-0">
                   <div>
@@ -316,9 +317,12 @@ export function FavoriteRecipesView() {
                         </span>
                       )}
                     </div>
-                    <button className="mt-2 text-xs md:text-sm text-primary font-medium hover:underline">
-                      Show more...
-                    </button>
+                    <div className="flex items-center justify-between mt-2">
+                      <button className="text-xs md:text-sm text-primary font-medium hover:underline">
+                        Show more...
+                      </button>
+                      <Heart className="w-4 h-4 text-destructive fill-destructive" />
+                    </div>
                   </div>
                 </div>
               </motion.div>
