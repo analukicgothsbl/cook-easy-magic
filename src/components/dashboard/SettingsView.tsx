@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { User, Lock, Trash2, Loader2, Save, Check, Sliders, CreditCard, Upload, Camera } from 'lucide-react';
+import { User, Lock, Trash2, Loader2, Save, Check, Sliders, CreditCard, Upload, Camera, DollarSign, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -23,7 +23,7 @@ type BudgetLevel = Database['public']['Enums']['budget_level'];
 type CreditReason = Database['public']['Enums']['credit_reason'];
 type CreditType = Database['public']['Enums']['credit_type'];
 
-type SettingsTab = 'basic' | 'personalized' | 'credit-usage';
+type SettingsTab = 'basic' | 'personalized' | 'credit-usage' | 'credit-billing';
 
 interface UserOptions {
   time_available: TimeAvailable | null;
@@ -80,6 +80,14 @@ const settingsMenuItems = [
   { id: 'basic' as const, title: 'Basic', icon: User },
   { id: 'personalized' as const, title: 'Personalized Options', icon: Sliders },
   { id: 'credit-usage' as const, title: 'Credit Usage', icon: CreditCard },
+  { id: 'credit-billing' as const, title: 'Credit Billing', icon: DollarSign },
+];
+
+const creditPackages = [
+  { price: 1, credits: 10 },
+  { price: 3, credits: 33 },
+  { price: 5, credits: 55 },
+  { price: 10, credits: 110 },
 ];
 
 const formatReason = (reason: CreditReason): string => {
@@ -703,6 +711,76 @@ export function SettingsView() {
     );
   };
 
+  const renderCreditBilling = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      {/* Pricing Table */}
+      <div className="card-warm p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-6">Credit Packages</h3>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Price</TableHead>
+                <TableHead>Credits</TableHead>
+                <TableHead className="text-right">Value</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {creditPackages.map((pkg) => (
+                <TableRow key={pkg.price}>
+                  <TableCell className="font-medium">${pkg.price}</TableCell>
+                  <TableCell className="text-primary font-semibold">{pkg.credits} credits</TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {(pkg.credits / pkg.price).toFixed(1)} credits/$
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <button
+          className="btn-primary w-full mt-6 flex items-center justify-center gap-2"
+        >
+          <CreditCard className="w-4 h-4" />
+          Buy more credits
+        </button>
+      </div>
+
+      {/* Donation Section */}
+      <div className="card-warm p-6 border-2 border-primary/20">
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+            <Heart className="w-6 h-6 text-primary" />
+          </div>
+          <p className="text-lg font-semibold text-foreground">
+            Donate and get extra <span className="text-primary">20%</span> credits
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Support our project and receive bonus credits as a thank you!
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            className="flex-1 px-4 py-3 bg-[#0070ba] hover:bg-[#005ea6] text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            <span className="text-lg">💳</span>
+            Donate with PayPal
+          </button>
+          <button
+            className="flex-1 px-4 py-3 bg-[#ff5e5b] hover:bg-[#e54e4b] text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            <span className="text-lg">☕</span>
+            Donate with credit card (Ko-fi)
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case 'basic':
@@ -711,6 +789,8 @@ export function SettingsView() {
         return renderPersonalizedSettings();
       case 'credit-usage':
         return renderCreditUsage();
+      case 'credit-billing':
+        return renderCreditBilling();
       default:
         return renderBasicSettings();
     }
