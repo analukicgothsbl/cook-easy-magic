@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb, ChefHat, Flame, UserPlus, LogIn, Check, Loader2, ImageIcon } from 'lucide-react';
+import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb, ChefHat, Flame, UserPlus, LogIn, Check, Loader2, ImageIcon, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -362,6 +362,8 @@ export const RecipeCard = ({
   }
 
   // Show error state
+  const isCreditsError = errorMsg.toLowerCase().includes("enough credits");
+  
   if (errorMsg) {
     return (
       <section className="section-padding bg-background">
@@ -373,21 +375,35 @@ export const RecipeCard = ({
             className="card-warm p-8 text-center"
           >
             <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">😕</span>
+              <span className="text-3xl">{isCreditsError ? "💳" : "😕"}</span>
             </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">Oops! Something went wrong</h3>
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              {isCreditsError ? "Out of Credits" : "Oops! Something went wrong"}
+            </h3>
             <p className="text-muted-foreground mb-6">{errorMsg}</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              {onRetry && (
+              {isCreditsError ? (
                 <motion.button
-                  onClick={onRetry}
+                  onClick={() => navigate('/dashboard', { state: { view: 'settings', settingsTab: 'credits' } })}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="btn-primary flex items-center justify-center gap-2"
                 >
-                  <RefreshCw className="w-4 h-4" />
-                  Try again
+                  <CreditCard className="w-4 h-4" />
+                  Buy credits
                 </motion.button>
+              ) : (
+                onRetry && (
+                  <motion.button
+                    onClick={onRetry}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="btn-primary flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Try again
+                  </motion.button>
+                )
               )}
             </div>
           </motion.div>
