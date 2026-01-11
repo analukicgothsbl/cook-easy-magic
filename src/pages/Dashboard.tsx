@@ -8,6 +8,7 @@ import { GenerateRecipeView } from '@/components/dashboard/GenerateRecipeView';
 import { MyRecipesView } from '@/components/dashboard/MyRecipesView';
 import { FavoriteRecipesView } from '@/components/dashboard/FavoriteRecipesView';
 import { LibraryView } from '@/components/dashboard/LibraryView';
+import { CookbookView } from '@/components/dashboard/CookbookView';
 import { SettingsView } from '@/components/dashboard/SettingsView';
 import { Loader2 } from 'lucide-react';
 
@@ -61,6 +62,7 @@ const Dashboard = () => {
       case 'settings-personalized':
         return <SettingsView activeTab={activeView === 'settings-basic' ? 'basic' : 'personalized'} />;
       case 'cookbook':
+        return <CookbookView />;
       case 'meal-planner':
         return (
           <div className="flex items-center justify-center h-full">
