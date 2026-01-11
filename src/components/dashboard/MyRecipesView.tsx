@@ -1,20 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, ChefHat, X, Loader2, BookOpen, Heart, ArrowUpDown, Flame, Wheat, Droplets } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import type { Recipe } from '@/components/RecipeCard';
-import type { Json } from '@/integrations/supabase/types';
-import { toast } from 'sonner';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock, Users, ChefHat, X, Loader2, BookOpen, Heart, ArrowUpDown, Flame, Wheat, Droplets } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import type { Recipe } from "@/components/RecipeCard";
+import type { Json } from "@/integrations/supabase/types";
+import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type SortOption = 'newest' | 'meal_category' | 'cuisine' | 'time_minutes';
+type SortOption = "newest" | "meal_category" | "cuisine" | "time_minutes";
 
 interface RecipeWithMeta extends Recipe {
   id: string;
@@ -36,18 +30,18 @@ export function MyRecipesView() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeWithMeta | null>(null);
   const [togglingFavorite, setTogglingFavorite] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   const sortedRecipes = useMemo(() => {
     const sorted = [...recipes];
     switch (sortBy) {
-      case 'meal_category':
-        return sorted.sort((a, b) => (a.meal_category || '').localeCompare(b.meal_category || ''));
-      case 'cuisine':
-        return sorted.sort((a, b) => (a.cuisine || '').localeCompare(b.cuisine || ''));
-      case 'time_minutes':
+      case "meal_category":
+        return sorted.sort((a, b) => (a.meal_category || "").localeCompare(b.meal_category || ""));
+      case "cuisine":
+        return sorted.sort((a, b) => (a.cuisine || "").localeCompare(b.cuisine || ""));
+      case "time_minutes":
         return sorted.sort((a, b) => (a.time_minutes || 999) - (b.time_minutes || 999));
-      case 'newest':
+      case "newest":
       default:
         return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
@@ -59,19 +53,17 @@ export function MyRecipesView() {
 
       try {
         // Fetch user's favorite recipe IDs
-        const { data: favData } = await supabase
-          .from('recipe_favorites')
-          .select('recipe_id')
-          .eq('user_id', user.id);
+        const { data: favData } = await supabase.from("recipe_favorites").select("recipe_id").eq("user_id", user.id);
 
         if (favData) {
-          setFavoriteIds(new Set(favData.map(f => f.recipe_id)));
+          setFavoriteIds(new Set(favData.map((f) => f.recipe_id)));
         }
 
         // Fetch recipes
         const { data, error } = await supabase
-          .from('recipe_user')
-          .select(`
+          .from("recipe_user")
+          .select(
+            `
             recipe_id,
             created_at,
             recipe:recipe_id (
@@ -91,12 +83,13 @@ export function MyRecipesView() {
               tips,
               nutrition_estimate
             )
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+          `,
+          )
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
 
         if (error) {
-          console.error('Error fetching recipes:', error);
+          console.error("Error fetching recipes:", error);
           return;
         }
 
@@ -120,7 +113,7 @@ export function MyRecipesView() {
               tips: string | null;
               nutrition_estimate: Json | null;
             };
-            
+
             return {
               id: recipe.id,
               title: recipe.title,
@@ -136,7 +129,7 @@ export function MyRecipesView() {
               ingredients: (recipe.ingredients || []) as (string | Ingredient)[],
               instructions: recipe.instructions ? [recipe.instructions] : [],
               tips: recipe.tips || undefined,
-              nutrition_estimate: recipe.nutrition_estimate as unknown as Recipe['nutrition_estimate'],
+              nutrition_estimate: recipe.nutrition_estimate as unknown as Recipe["nutrition_estimate"],
               created_at: item.created_at,
             };
           });
@@ -145,15 +138,15 @@ export function MyRecipesView() {
 
         // Fetch recipe images
         if (formattedRecipes.length > 0) {
-          const recipeIds = formattedRecipes.map(r => r.id);
+          const recipeIds = formattedRecipes.map((r) => r.id);
           const { data: imageData } = await supabase
-            .from('recipe_image')
-            .select('recipe_id, image_url')
-            .in('recipe_id', recipeIds);
+            .from("recipe_image")
+            .select("recipe_id, image_url")
+            .in("recipe_id", recipeIds);
 
           if (imageData) {
             const imageMap: Record<string, string> = {};
-            imageData.forEach(img => {
+            imageData.forEach((img) => {
               if (img.image_url) {
                 imageMap[img.recipe_id] = img.image_url;
               }
@@ -162,7 +155,7 @@ export function MyRecipesView() {
           }
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error("Error:", error);
       } finally {
         setIsLoading(false);
       }
@@ -182,46 +175,44 @@ export function MyRecipesView() {
       if (isFavorited) {
         // Remove from favorites
         const { error } = await supabase
-          .from('recipe_favorites')
+          .from("recipe_favorites")
           .delete()
-          .eq('user_id', user.id)
-          .eq('recipe_id', recipeId);
+          .eq("user_id", user.id)
+          .eq("recipe_id", recipeId);
 
         if (error) throw error;
 
-        setFavoriteIds(prev => {
+        setFavoriteIds((prev) => {
           const next = new Set(prev);
           next.delete(recipeId);
           return next;
         });
-        toast.success('Removed from favorites');
+        toast.success("Removed from favorites");
       } else {
         // Add to favorites
-        const { error } = await supabase
-          .from('recipe_favorites')
-          .insert({ user_id: user.id, recipe_id: recipeId });
+        const { error } = await supabase.from("recipe_favorites").insert({ user_id: user.id, recipe_id: recipeId });
 
         if (error) {
-          if (error.code === '23505') {
-            toast.info('Already in favorites');
+          if (error.code === "23505") {
+            toast.info("Already in favorites");
           } else {
             throw error;
           }
         } else {
-          setFavoriteIds(prev => new Set(prev).add(recipeId));
-          toast.success('Added to favorites');
+          setFavoriteIds((prev) => new Set(prev).add(recipeId));
+          toast.success("Added to favorites");
         }
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
-      toast.error('Failed to update favorite');
+      console.error("Error toggling favorite:", error);
+      toast.error("Failed to update favorite");
     } finally {
       setTogglingFavorite(null);
     }
   };
 
   const formatIngredient = (ing: string | Ingredient): string => {
-    if (typeof ing === 'string') return ing;
+    if (typeof ing === "string") return ing;
     return `${ing.quantity} ${ing.unit} ${ing.name}`.trim();
   };
 
@@ -238,9 +229,7 @@ export function MyRecipesView() {
       <div className="flex flex-col items-center justify-center h-64 text-center p-6">
         <BookOpen className="w-16 h-16 text-muted-foreground mb-4" />
         <h3 className="text-xl font-semibold text-foreground mb-2">No recipes yet</h3>
-        <p className="text-muted-foreground">
-          Generate your first recipe to see it here!
-        </p>
+        <p className="text-muted-foreground">Generate your first recipe to see it here!</p>
       </div>
     );
   }
@@ -277,50 +266,39 @@ export function MyRecipesView() {
             {/* Square Recipe Image */}
             <div className="aspect-square bg-gradient-to-br from-primary/10 to-accent/20 flex items-center justify-center overflow-hidden">
               {recipeImages[recipe.id] ? (
-                <img 
-                  src={recipeImages[recipe.id]} 
-                  alt={recipe.title} 
+                <img
+                  src={recipeImages[recipe.id]}
+                  alt={recipe.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               ) : (
                 <ChefHat className="w-12 h-12 text-primary/40" />
               )}
             </div>
-            
+
             {/* Content */}
-            <div className="p-4">
-              <h3 className="font-bold text-foreground mb-2 line-clamp-1">
-                {recipe.title}
-              </h3>
-              {recipe.description_short && (
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {recipe.description_short}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <div className="p-3">
+              <h3 className="font-bold text-foreground mb-1 line-clamp-1 text-sm">{recipe.title}</h3>
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 {recipe.meal_category && (
-                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full capitalize">
+                  <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full capitalize text-[10px]">
                     {recipe.meal_category}
                   </span>
                 )}
-                {recipe.time_minutes && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {recipe.time_minutes} min
+                {recipe.cuisine && (
+                  <span className="px-2 py-0.5 bg-accent/50 text-foreground rounded-full capitalize text-[10px]">
+                    {recipe.cuisine}
                   </span>
                 )}
-                {recipe.servings && (
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {recipe.servings}
+                {recipe.time_minutes && (
+                  <span className="flex items-center gap-0.5">
+                    <Clock className="w-3 h-3" />
+                    {recipe.time_minutes}m
                   </span>
                 )}
               </div>
-              <button className="mt-3 text-sm text-primary font-medium hover:underline">
-                Show more...
-              </button>
             </div>
-            
+
             {/* Favorite Heart */}
             <button
               onClick={(e) => toggleFavorite(e, recipe.id)}
@@ -330,9 +308,9 @@ export function MyRecipesView() {
               <Heart
                 className={`w-4 h-4 transition-colors ${
                   favoriteIds.has(recipe.id)
-                    ? 'text-destructive fill-destructive'
-                    : 'text-muted-foreground hover:text-destructive'
-                } ${togglingFavorite === recipe.id ? 'animate-pulse' : ''}`}
+                    ? "text-destructive fill-destructive"
+                    : "text-muted-foreground hover:text-destructive"
+                } ${togglingFavorite === recipe.id ? "animate-pulse" : ""}`}
               />
             </button>
           </motion.div>
@@ -467,24 +445,20 @@ export function MyRecipesView() {
                         <p className="text-xs text-muted-foreground">Calories</p>
                       </div>
                       <div className="bg-accent/50 rounded-xl p-3 text-center">
-                        <div className="w-5 h-5 mx-auto mb-1 flex items-center justify-center text-red-500 font-bold text-sm">P</div>
-                        <p className="text-lg font-bold text-foreground">
-                          {selectedRecipe.nutrition_estimate.protein}g
-                        </p>
+                        <div className="w-5 h-5 mx-auto mb-1 flex items-center justify-center text-red-500 font-bold text-sm">
+                          P
+                        </div>
+                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.protein}</p>
                         <p className="text-xs text-muted-foreground">Protein</p>
                       </div>
                       <div className="bg-accent/50 rounded-xl p-3 text-center">
                         <Wheat className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                        <p className="text-lg font-bold text-foreground">
-                          {selectedRecipe.nutrition_estimate.carbs}g
-                        </p>
+                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.carbs}</p>
                         <p className="text-xs text-muted-foreground">Carbs</p>
                       </div>
                       <div className="bg-accent/50 rounded-xl p-3 text-center">
                         <Droplets className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
-                        <p className="text-lg font-bold text-foreground">
-                          {selectedRecipe.nutrition_estimate.fat}g
-                        </p>
+                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.fat}</p>
                         <p className="text-xs text-muted-foreground">Fat</p>
                       </div>
                     </div>
