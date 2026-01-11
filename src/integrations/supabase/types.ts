@@ -38,6 +38,48 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_purchases: {
+        Row: {
+          amount: number
+          created_at: string
+          credits: number
+          currency: string
+          id: string
+          package_id: string
+          paypal_capture_id: string | null
+          paypal_order_id: string | null
+          provider: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credits: number
+          currency?: string
+          id?: string
+          package_id: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          provider?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credits?: number
+          currency?: string
+          id?: string
+          package_id?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          provider?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       credit_usage: {
         Row: {
           amount: number
@@ -403,6 +445,7 @@ export type Database = {
         | "donate_bonus"
         | "purchased_credit"
         | "admin_bonus"
+        | "buy_credits_paypal"
       credit_type: "income" | "cost"
       cuisine_type:
         | "any_surprise_me"
@@ -555,6 +598,7 @@ export const Constants = {
         "donate_bonus",
         "purchased_credit",
         "admin_bonus",
+        "buy_credits_paypal",
       ],
       credit_type: ["income", "cost"],
       cuisine_type: [
