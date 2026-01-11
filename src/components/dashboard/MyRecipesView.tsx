@@ -338,7 +338,7 @@ export function MyRecipesView() {
             </div>
 
             {/* Content */}
-            <div className="p-4">
+            <div className="p-4 pb-3">
               <h3 className="font-bold text-foreground mb-2 line-clamp-1">{recipe.title}</h3>
               {recipe.description_short && (
                 <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
@@ -364,25 +364,26 @@ export function MyRecipesView() {
                   </span>
                 )}
               </div>
-              <button className="mt-3 text-sm text-primary font-medium hover:underline">
-                Show more...
-              </button>
+              <div className="flex items-center justify-between mt-3">
+                <button className="text-sm text-primary font-medium hover:underline">
+                  Show more...
+                </button>
+                {/* Favorite Heart */}
+                <button
+                  onClick={(e) => toggleFavorite(e, recipe.id)}
+                  disabled={togglingFavorite === recipe.id}
+                  className="p-1.5 rounded-full hover:bg-primary/10 transition-colors"
+                >
+                  <Heart
+                    className={`w-4 h-4 transition-colors ${
+                      favoriteIds.has(recipe.id)
+                        ? "text-destructive fill-destructive"
+                        : "text-muted-foreground hover:text-destructive"
+                    } ${togglingFavorite === recipe.id ? "animate-pulse" : ""}`}
+                  />
+                </button>
+              </div>
             </div>
-
-            {/* Favorite Heart */}
-            <button
-              onClick={(e) => toggleFavorite(e, recipe.id)}
-              disabled={togglingFavorite === recipe.id}
-              className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background transition-colors opacity-0 group-hover:opacity-100"
-            >
-              <Heart
-                className={`w-4 h-4 transition-colors ${
-                  favoriteIds.has(recipe.id)
-                    ? "text-destructive fill-destructive"
-                    : "text-muted-foreground hover:text-destructive"
-                } ${togglingFavorite === recipe.id ? "animate-pulse" : ""}`}
-              />
-            </button>
           </motion.div>
         ))}
       </div>
