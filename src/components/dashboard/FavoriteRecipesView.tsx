@@ -293,17 +293,21 @@ export function FavoriteRecipesView() {
     fetchFavorites();
   }, [user]);
 
-  // Group recipes by meal category
+  // Group recipes by meal category and sort by title A-Z
   const recipesByCategory = useMemo(() => {
     const grouped: Record<string, RecipeWithMeta[]> = {};
     
     MEAL_CATEGORIES.forEach(category => {
-      grouped[category] = recipes.filter(r => r.meal_category === category);
+      const categoryRecipes = recipes.filter(r => r.meal_category === category);
+      // Sort by title ascending (A-Z)
+      categoryRecipes.sort((a, b) => a.title.localeCompare(b.title));
+      grouped[category] = categoryRecipes;
     });
     
-    // Add uncategorized recipes
+    // Add uncategorized recipes, also sorted by title
     const uncategorized = recipes.filter(r => !r.meal_category || !MEAL_CATEGORIES.includes(r.meal_category as typeof MEAL_CATEGORIES[number]));
     if (uncategorized.length > 0) {
+      uncategorized.sort((a, b) => a.title.localeCompare(b.title));
       grouped['other'] = uncategorized;
     }
     
