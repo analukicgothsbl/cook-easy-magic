@@ -400,6 +400,9 @@ export type Database = {
         | "generate_recipe"
         | "generate_recipe_image"
         | "bonus_credit"
+        | "donate_bonus"
+        | "purchased_credit"
+        | "admin_bonus"
       credit_type: "income" | "cost"
       cuisine_type:
         | "any_surprise_me"
@@ -549,6 +552,9 @@ export const Constants = {
         "generate_recipe",
         "generate_recipe_image",
         "bonus_credit",
+        "donate_bonus",
+        "purchased_credit",
+        "admin_bonus",
       ],
       credit_type: ["income", "cost"],
       cuisine_type: [
