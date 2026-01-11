@@ -1,11 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, ChefHat, X, Loader2, BookOpen, Heart } from 'lucide-react';
+import { Clock, Users, ChefHat, X, Loader2, BookOpen, Heart, ArrowUpDown, Flame, Wheat, Droplets } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { Recipe } from '@/components/RecipeCard';
 import type { Json } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+type SortOption = 'newest' | 'meal_category' | 'cuisine' | 'time_minutes';
 
 interface RecipeWithMeta extends Recipe {
   id: string;
@@ -27,6 +36,22 @@ export function MyRecipesView() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeWithMeta | null>(null);
   const [togglingFavorite, setTogglingFavorite] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+
+  const sortedRecipes = useMemo(() => {
+    const sorted = [...recipes];
+    switch (sortBy) {
+      case 'meal_category':
+        return sorted.sort((a, b) => (a.meal_category || '').localeCompare(b.meal_category || ''));
+      case 'cuisine':
+        return sorted.sort((a, b) => (a.cuisine || '').localeCompare(b.cuisine || ''));
+      case 'time_minutes':
+        return sorted.sort((a, b) => (a.time_minutes || 999) - (b.time_minutes || 999));
+      case 'newest':
+      default:
+        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }, [recipes, sortBy]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -222,23 +247,40 @@ export function MyRecipesView() {
 
   return (
     <div className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recipes.map((recipe, index) => (
+      {/* Sort Options */}
+      <div className="flex items-center gap-3 mb-6">
+        <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">Sort by:</span>
+        <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sort by..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest First</SelectItem>
+            <SelectItem value="meal_category">Meal Category</SelectItem>
+            <SelectItem value="cuisine">Cuisine</SelectItem>
+            <SelectItem value="time_minutes">Cooking Time</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {sortedRecipes.map((recipe, index) => (
           <motion.div
             key={recipe.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className="card-warm overflow-hidden cursor-pointer hover:border-primary/30 transition-colors relative"
+            transition={{ delay: index * 0.03 }}
+            className="card-warm overflow-hidden cursor-pointer hover:border-primary/30 transition-colors relative group"
             onClick={() => setSelectedRecipe(recipe)}
           >
-            {/* Recipe Image */}
-            <div className="h-40 bg-gradient-to-br from-primary/10 to-accent/20 flex items-center justify-center overflow-hidden">
+            {/* Square Recipe Image */}
+            <div className="aspect-square bg-gradient-to-br from-primary/10 to-accent/20 flex items-center justify-center overflow-hidden">
               {recipeImages[recipe.id] ? (
                 <img 
                   src={recipeImages[recipe.id]} 
                   alt={recipe.title} 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               ) : (
                 <ChefHat className="w-12 h-12 text-primary/40" />
@@ -246,53 +288,44 @@ export function MyRecipesView() {
             </div>
             
             {/* Content */}
-            <div className="p-4">
-              <h3 className="font-bold text-foreground mb-2 line-clamp-1">
+            <div className="p-3">
+              <h3 className="font-bold text-foreground mb-1 line-clamp-1 text-sm">
                 {recipe.title}
               </h3>
-              {recipe.description_short && (
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {recipe.description_short}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 {recipe.meal_category && (
-                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full capitalize">
+                  <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full capitalize text-[10px]">
                     {recipe.meal_category}
                   </span>
                 )}
-                {recipe.time_minutes && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {recipe.time_minutes} min
+                {recipe.cuisine && (
+                  <span className="px-2 py-0.5 bg-accent/50 text-foreground rounded-full capitalize text-[10px]">
+                    {recipe.cuisine}
                   </span>
                 )}
-                {recipe.servings && (
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {recipe.servings}
+                {recipe.time_minutes && (
+                  <span className="flex items-center gap-0.5">
+                    <Clock className="w-3 h-3" />
+                    {recipe.time_minutes}m
                   </span>
                 )}
               </div>
-              <button className="mt-3 text-sm text-primary font-medium hover:underline">
-                Show more...
-              </button>
-              
-              {/* Favorite Heart */}
-              <button
-                onClick={(e) => toggleFavorite(e, recipe.id)}
-                disabled={togglingFavorite === recipe.id}
-                className="absolute bottom-4 right-4 p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
-              >
-                <Heart
-                  className={`w-5 h-5 transition-colors ${
-                    favoriteIds.has(recipe.id)
-                      ? 'text-destructive fill-destructive'
-                      : 'text-muted-foreground hover:text-destructive'
-                  } ${togglingFavorite === recipe.id ? 'animate-pulse' : ''}`}
-                />
-              </button>
             </div>
+            
+            {/* Favorite Heart */}
+            <button
+              onClick={(e) => toggleFavorite(e, recipe.id)}
+              disabled={togglingFavorite === recipe.id}
+              className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <Heart
+                className={`w-4 h-4 transition-colors ${
+                  favoriteIds.has(recipe.id)
+                    ? 'text-destructive fill-destructive'
+                    : 'text-muted-foreground hover:text-destructive'
+                } ${togglingFavorite === recipe.id ? 'animate-pulse' : ''}`}
+              />
+            </button>
           </motion.div>
         ))}
       </div>
@@ -404,6 +437,48 @@ export function MyRecipesView() {
                   <div className="p-4 bg-accent rounded-xl border border-primary/20">
                     <p className="font-semibold text-foreground text-sm mb-1">💡 Pro tip</p>
                     <p className="text-muted-foreground text-sm">{selectedRecipe.tips}</p>
+                  </div>
+                )}
+
+                {/* Nutrition Estimate */}
+                {selectedRecipe.nutrition_estimate && (
+                  <div>
+                    <h3 className="font-bold text-foreground mb-3 flex items-center gap-2">
+                      <span className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm">
+                        🥗
+                      </span>
+                      Nutrition Estimate
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-accent/50 rounded-xl p-3 text-center">
+                        <Flame className="w-5 h-5 text-orange-500 mx-auto mb-1" />
+                        <p className="text-lg font-bold text-foreground">
+                          {selectedRecipe.nutrition_estimate.calories}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Calories</p>
+                      </div>
+                      <div className="bg-accent/50 rounded-xl p-3 text-center">
+                        <div className="w-5 h-5 mx-auto mb-1 flex items-center justify-center text-red-500 font-bold text-sm">P</div>
+                        <p className="text-lg font-bold text-foreground">
+                          {selectedRecipe.nutrition_estimate.protein}g
+                        </p>
+                        <p className="text-xs text-muted-foreground">Protein</p>
+                      </div>
+                      <div className="bg-accent/50 rounded-xl p-3 text-center">
+                        <Wheat className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                        <p className="text-lg font-bold text-foreground">
+                          {selectedRecipe.nutrition_estimate.carbs}g
+                        </p>
+                        <p className="text-xs text-muted-foreground">Carbs</p>
+                      </div>
+                      <div className="bg-accent/50 rounded-xl p-3 text-center">
+                        <Droplets className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
+                        <p className="text-lg font-bold text-foreground">
+                          {selectedRecipe.nutrition_estimate.fat}g
+                        </p>
+                        <p className="text-xs text-muted-foreground">Fat</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
