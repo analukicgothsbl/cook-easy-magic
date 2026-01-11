@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { User, Lock, Trash2, Loader2, Save, Check, Sliders, CreditCard, Upload, Camera, DollarSign, Heart } from 'lucide-react';
+import { User, Lock, Trash2, Loader2, Save, Check, Sliders, CreditCard, Upload, Camera, DollarSign, Heart, Copy } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -766,19 +766,47 @@ export function SettingsView() {
             Support our project and receive bonus credits as a thank you!
           </p>
         </div>
+
+        {/* Copy-paste identification text */}
+        <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground mb-2">
+            Please paste this into the Ko-fi message so I can add your credits fast.
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 px-3 py-2 bg-background rounded border border-border text-sm font-mono text-foreground break-all">
+              CookMaster | {user?.email} | +20% credits
+            </code>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`CookMaster | ${user?.email} | +20% credits`);
+                toast.success("Copied to clipboard!");
+              }}
+              className="px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded transition-colors"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
+          <a
+            href="https://ko-fi.com/settrendcode"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex-1 px-4 py-3 bg-[#0070ba] hover:bg-[#005ea6] text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
           >
             <span className="text-lg">💳</span>
             Donate with PayPal
-          </button>
-          <button
+          </a>
+          <a
+            href="https://ko-fi.com/settrendcode"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex-1 px-4 py-3 bg-[#ff5e5b] hover:bg-[#e54e4b] text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
           >
             <span className="text-lg">☕</span>
             Donate with credit card (Ko-fi)
-          </button>
+          </a>
         </div>
       </div>
     </motion.div>
