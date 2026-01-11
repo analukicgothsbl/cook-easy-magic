@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Users, ChefHat, X, Loader2, BookOpen, Heart, Flame, Wheat, Droplets } from "lucide-react";
+import { motion } from "framer-motion";
+import { Clock, Users, ChefHat, Loader2, BookOpen, Heart } from "lucide-react";
+import { RecipeDetailModal } from "./RecipeDetailModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Recipe } from "@/components/RecipeCard";
@@ -387,157 +388,10 @@ export function MyRecipesView() {
       </div>
 
       {/* Full Recipe Modal */}
-      <AnimatePresence>
-        {selectedRecipe && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-foreground/50 z-50 flex items-center justify-center p-4"
-            onClick={() => setSelectedRecipe(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
-                <h2 className="text-xl font-bold text-foreground">{selectedRecipe.title}</h2>
-                <button
-                  onClick={() => setSelectedRecipe(null)}
-                  className="p-2 hover:bg-muted rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="p-6 space-y-6">
-                {/* Meta Info */}
-                <div className="flex flex-wrap gap-3 text-sm">
-                  {selectedRecipe.meal_category && (
-                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full capitalize">
-                      {selectedRecipe.meal_category}
-                    </span>
-                  )}
-                  {selectedRecipe.time_minutes && (
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <Clock className="w-4 h-4" />
-                      {selectedRecipe.time_minutes} min
-                    </span>
-                  )}
-                  {selectedRecipe.servings && (
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <Users className="w-4 h-4" />
-                      {selectedRecipe.servings} servings
-                    </span>
-                  )}
-                  {selectedRecipe.difficulty && (
-                    <span className="flex items-center gap-1 text-muted-foreground capitalize">
-                      <ChefHat className="w-4 h-4" />
-                      {selectedRecipe.difficulty}
-                    </span>
-                  )}
-                </div>
-
-                {/* Description */}
-                {selectedRecipe.description_long && (
-                  <p className="text-muted-foreground">{selectedRecipe.description_long}</p>
-                )}
-
-                {/* Ingredients */}
-                <div>
-                  <h3 className="font-bold text-foreground mb-3 flex items-center gap-2">
-                    <span className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm">
-                      🥘
-                    </span>
-                    Ingredients
-                  </h3>
-                  <ul className="grid gap-2 sm:grid-cols-2">
-                    {selectedRecipe.ingredients.map((ing, i) => (
-                      <li key={i} className="flex items-start gap-2 text-foreground">
-                        <span className="text-primary">•</span>
-                        {formatIngredient(ing)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Instructions */}
-                {selectedRecipe.instructions && selectedRecipe.instructions.length > 0 && (
-                  <div>
-                    <h3 className="font-bold text-foreground mb-3 flex items-center gap-2">
-                      <span className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm">
-                        📝
-                      </span>
-                      Instructions
-                    </h3>
-                    <ol className="space-y-3">
-                      {selectedRecipe.instructions.map((step, i) => (
-                        <li key={i} className="flex gap-4">
-                          <span className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">
-                            {i + 1}
-                          </span>
-                          <p className="text-foreground pt-1">{step}</p>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-
-                {/* Tips */}
-                {selectedRecipe.tips && (
-                  <div className="p-4 bg-accent rounded-xl border border-primary/20">
-                    <p className="font-semibold text-foreground text-sm mb-1">💡 Pro tip</p>
-                    <p className="text-muted-foreground text-sm">{selectedRecipe.tips}</p>
-                  </div>
-                )}
-
-                {/* Nutrition Estimate */}
-                {selectedRecipe.nutrition_estimate && (
-                  <div>
-                    <h3 className="font-bold text-foreground mb-3 flex items-center gap-2">
-                      <span className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm">
-                        🥗
-                      </span>
-                      Nutrition Estimate
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="bg-accent/50 rounded-xl p-3 text-center">
-                        <Flame className="w-5 h-5 text-orange-500 mx-auto mb-1" />
-                        <p className="text-lg font-bold text-foreground">
-                          {selectedRecipe.nutrition_estimate.calories}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Calories</p>
-                      </div>
-                      <div className="bg-accent/50 rounded-xl p-3 text-center">
-                        <div className="w-5 h-5 mx-auto mb-1 flex items-center justify-center text-red-500 font-bold text-sm">
-                          P
-                        </div>
-                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.protein}</p>
-                        <p className="text-xs text-muted-foreground">Protein</p>
-                      </div>
-                      <div className="bg-accent/50 rounded-xl p-3 text-center">
-                        <Wheat className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.carbs}</p>
-                        <p className="text-xs text-muted-foreground">Carbs</p>
-                      </div>
-                      <div className="bg-accent/50 rounded-xl p-3 text-center">
-                        <Droplets className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
-                        <p className="text-lg font-bold text-foreground">{selectedRecipe.nutrition_estimate.fat}</p>
-                        <p className="text-xs text-muted-foreground">Fat</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <RecipeDetailModal 
+        recipe={selectedRecipe} 
+        onClose={() => setSelectedRecipe(null)} 
+      />
     </div>
   );
 }
