@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, Users, ChefHat, Loader2, Heart } from 'lucide-react';
 import { RecipeDetailModal } from './RecipeDetailModal';
@@ -18,6 +18,16 @@ interface Ingredient {
   quantity: string;
   unit: string;
 }
+
+const MEAL_CATEGORIES = ['breakfast', 'lunch', 'dinner', 'dessert', 'snack'] as const;
+
+const categoryLabels: Record<string, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  dessert: 'Dessert',
+  snack: 'Snack',
+};
 
 export function FavoriteRecipesView() {
   const { user } = useAuth();
@@ -133,10 +143,22 @@ export function FavoriteRecipesView() {
     fetchFavorites();
   }, [user]);
 
-  const formatIngredient = (ing: string | Ingredient): string => {
-    if (typeof ing === 'string') return ing;
-    return `${ing.quantity} ${ing.unit} ${ing.name}`.trim();
-  };
+  // Group recipes by meal category
+  const recipesByCategory = useMemo(() => {
+    const grouped: Record<string, RecipeWithMeta[]> = {};
+    
+    MEAL_CATEGORIES.forEach(category => {
+      grouped[category] = recipes.filter(r => r.meal_category === category);
+    });
+    
+    // Add uncategorized recipes
+    const uncategorized = recipes.filter(r => !r.meal_category || !MEAL_CATEGORIES.includes(r.meal_category as typeof MEAL_CATEGORIES[number]));
+    if (uncategorized.length > 0) {
+      grouped['other'] = uncategorized;
+    }
+    
+    return grouped;
+  }, [recipes]);
 
   if (isLoading) {
     return (
@@ -160,66 +182,150 @@ export function FavoriteRecipesView() {
 
   return (
     <div className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recipes.map((recipe, index) => (
-          <motion.div
-            key={recipe.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className="card-warm overflow-hidden cursor-pointer hover:border-primary/30 transition-colors"
-            onClick={() => setSelectedRecipe(recipe)}
-          >
-            {/* Recipe Image */}
-            <div className="h-40 bg-gradient-to-br from-destructive/10 to-primary/10 flex items-center justify-center relative overflow-hidden">
-              {recipeImages[recipe.id] ? (
-                <img 
-                  src={recipeImages[recipe.id]} 
-                  alt={recipe.title} 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <ChefHat className="w-12 h-12 text-primary/40" />
-              )}
-              <Heart className="absolute top-3 right-3 w-5 h-5 text-destructive fill-destructive" />
+      {MEAL_CATEGORIES.map((category) => {
+        const categoryRecipes = recipesByCategory[category];
+        if (!categoryRecipes || categoryRecipes.length === 0) return null;
+
+        return (
+          <div key={category} className="mb-8">
+            {/* Category Header */}
+            <h2 className="text-lg font-semibold text-foreground capitalize mb-2">
+              {categoryLabels[category]}
+            </h2>
+            <div className="h-px bg-border mb-4" />
+
+            {/* Recipes Grid - 2 columns on desktop, 1 on mobile */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categoryRecipes.map((recipe, index) => (
+                <motion.div
+                  key={recipe.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="card-warm overflow-hidden cursor-pointer hover:border-primary/30 transition-colors flex flex-row"
+                  onClick={() => setSelectedRecipe(recipe)}
+                >
+                  {/* Square Recipe Image */}
+                  <div className="w-28 h-28 md:w-32 md:h-32 flex-shrink-0 bg-gradient-to-br from-destructive/10 to-primary/10 flex items-center justify-center relative overflow-hidden">
+                    {recipeImages[recipe.id] ? (
+                      <img 
+                        src={recipeImages[recipe.id]} 
+                        alt={recipe.title} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <ChefHat className="w-10 h-10 text-primary/40" />
+                    )}
+                    <Heart className="absolute top-2 right-2 w-4 h-4 text-destructive fill-destructive" />
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="p-3 flex flex-col justify-between flex-1 min-w-0">
+                    <div>
+                      <h3 className="font-bold text-foreground mb-1 line-clamp-1 text-sm md:text-base">
+                        {recipe.title}
+                      </h3>
+                      {recipe.description_short && (
+                        <p className="text-xs md:text-sm text-muted-foreground mb-2 line-clamp-2">
+                          {recipe.description_short}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        {recipe.meal_category && (
+                          <span className="text-primary capitalize">
+                            {recipe.meal_category}
+                          </span>
+                        )}
+                        {recipe.time_minutes && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {recipe.time_minutes} min
+                          </span>
+                        )}
+                        {recipe.servings && (
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {recipe.servings}
+                          </span>
+                        )}
+                      </div>
+                      <button className="mt-2 text-xs md:text-sm text-primary font-medium hover:underline">
+                        Show more...
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
             </div>
-            
-            {/* Content */}
-            <div className="p-4">
-              <h3 className="font-bold text-foreground mb-2 line-clamp-1">
-                {recipe.title}
-              </h3>
-              {recipe.description_short && (
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {recipe.description_short}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                {recipe.meal_category && (
-                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full capitalize">
-                    {recipe.meal_category}
-                  </span>
-                )}
-                {recipe.time_minutes && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {recipe.time_minutes} min
-                  </span>
-                )}
-                {recipe.servings && (
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {recipe.servings}
-                  </span>
-                )}
-              </div>
-              <button className="mt-3 text-sm text-primary font-medium hover:underline">
-                Show more...
-              </button>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+          </div>
+        );
+      })}
+
+      {/* Uncategorized recipes */}
+      {recipesByCategory['other'] && recipesByCategory['other'].length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-foreground mb-2">Other</h2>
+          <div className="h-px bg-border mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {recipesByCategory['other'].map((recipe, index) => (
+              <motion.div
+                key={recipe.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="card-warm overflow-hidden cursor-pointer hover:border-primary/30 transition-colors flex flex-row"
+                onClick={() => setSelectedRecipe(recipe)}
+              >
+                <div className="w-28 h-28 md:w-32 md:h-32 flex-shrink-0 bg-gradient-to-br from-destructive/10 to-primary/10 flex items-center justify-center relative overflow-hidden">
+                  {recipeImages[recipe.id] ? (
+                    <img 
+                      src={recipeImages[recipe.id]} 
+                      alt={recipe.title} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <ChefHat className="w-10 h-10 text-primary/40" />
+                  )}
+                  <Heart className="absolute top-2 right-2 w-4 h-4 text-destructive fill-destructive" />
+                </div>
+                <div className="p-3 flex flex-col justify-between flex-1 min-w-0">
+                  <div>
+                    <h3 className="font-bold text-foreground mb-1 line-clamp-1 text-sm md:text-base">
+                      {recipe.title}
+                    </h3>
+                    {recipe.description_short && (
+                      <p className="text-xs md:text-sm text-muted-foreground mb-2 line-clamp-2">
+                        {recipe.description_short}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {recipe.time_minutes && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {recipe.time_minutes} min
+                        </span>
+                      )}
+                      {recipe.servings && (
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {recipe.servings}
+                        </span>
+                      )}
+                    </div>
+                    <button className="mt-2 text-xs md:text-sm text-primary font-medium hover:underline">
+                      Show more...
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Full Recipe Modal */}
       <RecipeDetailModal 
