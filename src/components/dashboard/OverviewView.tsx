@@ -15,6 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, ResponsiveContainer, 
 
 interface OverviewViewProps {
   onNavigate: (view: DashboardView) => void;
+  refreshKey?: number;
 }
 
 interface Stats {
@@ -49,7 +50,7 @@ const mealLabels: Record<string, string> = {
   'snack': 'Snack',
 };
 
-export function OverviewView({ onNavigate }: OverviewViewProps) {
+export function OverviewView({ onNavigate, refreshKey }: OverviewViewProps) {
   const { user } = useAuth();
   const [userName, setUserName] = useState<string>('Chef');
   const [stats, setStats] = useState<Stats>({
@@ -209,7 +210,7 @@ export function OverviewView({ onNavigate }: OverviewViewProps) {
     };
 
     fetchData();
-  }, [user]);
+  }, [user, refreshKey]);
 
   const totalCredits = wallet.balance + wallet.dailyRemaining;
   const maxDisplayCredits = Math.max(totalCredits, 10); // Minimum scale of 10 for the bar

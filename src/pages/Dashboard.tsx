@@ -30,6 +30,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isCapturingPayment, setIsCapturingPayment] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -59,6 +60,7 @@ const Dashboard = () => {
             console.error('PayPal capture error:', error || data?.error);
           } else {
             toast.success(`✅ ${data.credits} credits added!`);
+            setRefreshKey((k) => k + 1); // Trigger data refresh
           }
         } catch (err) {
           toast.dismiss(loadingToast);
@@ -90,7 +92,7 @@ const Dashboard = () => {
   const renderView = () => {
     switch (activeView) {
       case 'overview':
-        return <OverviewView onNavigate={setActiveView} />;
+        return <OverviewView onNavigate={setActiveView} refreshKey={refreshKey} />;
       case 'generate':
         return <GenerateRecipeView />;
       case 'my-recipes':
