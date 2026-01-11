@@ -85,9 +85,9 @@ const settingsMenuItems = [
 
 const creditPackages = [
   { price: 1, credits: 10 },
-  { price: 3, credits: 33 },
+  { price: 3, credits: 32 },
   { price: 5, credits: 55 },
-  { price: 10, credits: 110 },
+  { price: 10, credits: 115 },
 ];
 
 const formatReason = (reason: CreditReason): string => {
@@ -97,6 +97,9 @@ const formatReason = (reason: CreditReason): string => {
     generate_recipe: 'Recipe Generation',
     generate_recipe_image: 'Image Generation',
     bonus_credit: 'Bonus Credit',
+    admin_bonus: 'Admin Bonus',
+    donate_bonus: 'Donation Bonus',
+    purchased_credit: 'Purchased Credit',
   };
   return reasonMap[reason] || reason;
 };
