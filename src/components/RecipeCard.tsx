@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb, ChefHat, Flame, UserPlus, LogIn, Check } from 'lucide-react';
+import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb, ChefHat, Flame, UserPlus, LogIn, Check, Loader2, ImageIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,44 +52,134 @@ interface RecipeCardProps {
   isGuestBlocked?: boolean;
 }
 
-// Skeleton loader component
-const RecipeSkeleton = () => (
-  <section className="section-padding bg-background">
-    <div className="container-narrow">
-      <div className="card-warm overflow-hidden animate-pulse">
-        <div className="h-48 sm:h-64 bg-muted" />
-        <div className="p-6 sm:p-8 space-y-6">
-          <div className="space-y-3">
-            <div className="h-8 bg-muted rounded w-3/4" />
-            <div className="h-4 bg-muted rounded w-1/2" />
-            <div className="flex gap-3">
-              <div className="h-6 bg-muted rounded-full w-20" />
-              <div className="h-6 bg-muted rounded w-24" />
-              <div className="h-6 bg-muted rounded w-24" />
+// Loading animation messages
+const loadingMessages = [
+  "Finding the perfect recipe...",
+  "Mixing ingredients...",
+  "Preheating the oven...",
+  "Adding a pinch of creativity...",
+  "Taste testing...",
+  "Almost ready to serve...",
+];
+
+// Skeleton loader component with animation
+const RecipeSkeleton = () => {
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <section className="section-padding bg-background">
+      <div className="container-narrow">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card-warm overflow-hidden"
+        >
+          {/* Animated image placeholder */}
+          <div className="h-48 sm:h-64 bg-gradient-to-br from-primary/20 via-accent to-secondary/30 relative overflow-hidden">
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+            />
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              >
+                <ChefHat className="w-12 h-12 text-primary" />
+              </motion.div>
+              <motion.p 
+                key={messageIndex}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4 text-foreground font-medium text-lg"
+              >
+                {loadingMessages[messageIndex]}
+              </motion.p>
             </div>
           </div>
-          <div className="space-y-3">
-            <div className="h-6 bg-muted rounded w-32" />
-            <div className="grid gap-2 sm:grid-cols-2">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-5 bg-muted rounded w-full" />
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="space-y-3">
+              <motion.div 
+                className="h-8 bg-muted rounded w-3/4"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+              <motion.div 
+                className="h-4 bg-muted rounded w-1/2"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+              />
+              <div className="flex gap-3">
+                <motion.div 
+                  className="h-6 bg-muted rounded-full w-20"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
+                />
+                <motion.div 
+                  className="h-6 bg-muted rounded w-24"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
+                />
+                <motion.div 
+                  className="h-6 bg-muted rounded w-24"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
+                />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <motion.div 
+                className="h-6 bg-muted rounded w-32"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[...Array(6)].map((_, i) => (
+                  <motion.div 
+                    key={i} 
+                    className="h-5 bg-muted rounded w-full"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <motion.div 
+                className="h-6 bg-muted rounded w-32"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <motion.div 
+                    className="h-8 w-8 bg-muted rounded-full flex-shrink-0"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.15 }}
+                  />
+                  <motion.div 
+                    className="h-5 bg-muted rounded flex-1"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.15 + 0.1 }}
+                  />
+                </div>
               ))}
             </div>
           </div>
-          <div className="space-y-3">
-            <div className="h-6 bg-muted rounded w-32" />
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex gap-4">
-                <div className="h-8 w-8 bg-muted rounded-full flex-shrink-0" />
-                <div className="h-5 bg-muted rounded flex-1" />
-              </div>
-            ))}
-          </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export const RecipeCard = ({ 
   recipe, 
@@ -105,6 +195,75 @@ export const RecipeCard = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [recipeImageUrl, setRecipeImageUrl] = useState<string | null>(null);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
+
+  // Poll for recipe image when logged in and recipe is displayed
+  useEffect(() => {
+    if (!recipeId || !isLoggedIn || isLoading) {
+      setRecipeImageUrl(null);
+      return;
+    }
+
+    let isMounted = true;
+    let pollCount = 0;
+    const maxPolls = 30; // Poll for up to 30 seconds
+    const pollInterval = 1000; // Poll every second
+
+    const fetchImage = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('recipe_image')
+          .select('image_url')
+          .eq('recipe_id', recipeId)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching recipe image:', error);
+          return false;
+        }
+
+        if (data?.image_url && isMounted) {
+          setRecipeImageUrl(data.image_url);
+          setIsLoadingImage(false);
+          return true; // Image found
+        }
+        return false; // Keep polling
+      } catch (err) {
+        console.error('Error fetching recipe image:', err);
+        return false;
+      }
+    };
+
+    const pollForImage = async () => {
+      setIsLoadingImage(true);
+      
+      // First immediate check
+      const found = await fetchImage();
+      if (found) return;
+
+      // Start polling
+      const interval = setInterval(async () => {
+        pollCount++;
+        const found = await fetchImage();
+        
+        if (found || pollCount >= maxPolls) {
+          clearInterval(interval);
+          if (!found && isMounted) {
+            setIsLoadingImage(false);
+          }
+        }
+      }, pollInterval);
+
+      return () => clearInterval(interval);
+    };
+
+    pollForImage();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [recipeId, isLoggedIn, isLoading]);
 
   const handleSaveRecipe = async () => {
     if (!isLoggedIn) {
@@ -262,21 +421,57 @@ export const RecipeCard = ({
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="card-warm overflow-hidden"
         >
-          {/* Recipe Image (locked for guests) */}
+          {/* Recipe Image */}
           <div className="relative h-48 sm:h-64 overflow-hidden">
-            <img
-              src={foodPasta}
-              alt={recipe.title}
-              className="w-full h-full object-cover blur-sm scale-105"
-            />
-            <div className="absolute inset-0 bg-foreground/40 flex items-center justify-center">
-              <div className="text-center text-primary-foreground">
-                <Lock className="w-8 h-8 mx-auto mb-2 opacity-80" />
-                <p className="text-sm font-medium opacity-90">
-                  Sign up to see recipe images
-                </p>
-              </div>
-            </div>
+            {isLoggedIn ? (
+              // Logged in user - show real image or loading state
+              recipeImageUrl ? (
+                <img
+                  src={recipeImageUrl}
+                  alt={recipe.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : isLoadingImage ? (
+                // Image is being generated
+                <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent to-secondary/30 flex items-center justify-center">
+                  <div className="text-center">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                      className="mb-3"
+                    >
+                      <ImageIcon className="w-10 h-10 text-primary" />
+                    </motion.div>
+                    <p className="text-sm font-medium text-foreground">
+                      Generating image...
+                    </p>
+                    <Loader2 className="w-4 h-4 animate-spin mx-auto mt-2 text-muted-foreground" />
+                  </div>
+                </div>
+              ) : (
+                // No image available (fallback)
+                <div className="w-full h-full bg-gradient-to-br from-primary/10 to-secondary/20 flex items-center justify-center">
+                  <ChefHat className="w-16 h-16 text-primary/40" />
+                </div>
+              )
+            ) : (
+              // Guest user - show locked state
+              <>
+                <img
+                  src={foodPasta}
+                  alt={recipe.title}
+                  className="w-full h-full object-cover blur-sm scale-105"
+                />
+                <div className="absolute inset-0 bg-foreground/40 flex items-center justify-center">
+                  <div className="text-center text-primary-foreground">
+                    <Lock className="w-8 h-8 mx-auto mb-2 opacity-80" />
+                    <p className="text-sm font-medium opacity-90">
+                      Sign up to see recipe images
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Recipe Content */}
