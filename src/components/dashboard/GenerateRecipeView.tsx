@@ -1,20 +1,20 @@
-import { useState, useRef, useEffect } from 'react';
-import { RecipeForm, type RecipeFormData, type UserDefaultOptions } from '@/components/RecipeForm';
-import { RecipeCard, type Recipe } from '@/components/RecipeCard';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from "react";
+import { RecipeForm, type RecipeFormData, type UserDefaultOptions } from "@/components/RecipeForm";
+import { RecipeCard, type Recipe } from "@/components/RecipeCard";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 export function GenerateRecipeView() {
   const { user } = useAuth();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [recipeId, setRecipeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
   const [lastFormData, setLastFormData] = useState<RecipeFormData | null>(null);
   const [userDefaults, setUserDefaults] = useState<UserDefaultOptions | undefined>(undefined);
   const [isLoadingDefaults, setIsLoadingDefaults] = useState(true);
-  
+
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Fetch user's default options
@@ -27,13 +27,13 @@ export function GenerateRecipeView() {
 
       try {
         const { data, error } = await supabase
-          .from('user_options')
-          .select('time_available, difficulty, cuisine, servings, budget_level, kids_friendly, meal_category')
-          .eq('user_id', user.id)
+          .from("user_options")
+          .select("time_available, difficulty, cuisine, servings, budget_level, kids_friendly, meal_category")
+          .eq("user_id", user.id)
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching user options:', error);
+          console.error("Error fetching user options:", error);
         } else if (data) {
           setUserDefaults({
             time_available: data.time_available,
@@ -46,7 +46,7 @@ export function GenerateRecipeView() {
           });
         }
       } catch (err) {
-        console.error('Unexpected error fetching user options:', err);
+        console.error("Unexpected error fetching user options:", err);
       } finally {
         setIsLoadingDefaults(false);
       }
@@ -57,14 +57,14 @@ export function GenerateRecipeView() {
 
   const scrollToResult = () => {
     setTimeout(() => {
-      resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   };
 
   const handleFormSubmit = async (data: RecipeFormData) => {
     setLastFormData(data);
     setIsLoading(true);
-    setErrorMsg('');
+    setErrorMsg("");
     setRecipe(null);
     setRecipeId(null);
     scrollToResult();
@@ -75,42 +75,42 @@ export function GenerateRecipeView() {
         guest_id: null, // Logged in user
       };
 
-      const { data: responseData, error } = await supabase.functions.invoke('generate-recipe', {
+      const { data: responseData, error } = await supabase.functions.invoke("generate-recipe", {
         body: payload,
       });
 
       if (error) {
-        let errorMessage = '';
-        
-        if (error.context && typeof error.context === 'object') {
+        let errorMessage = "";
+
+        if (error.context && typeof error.context === "object") {
           try {
             const responseBody = await (error.context as Response).json?.();
-            errorMessage = responseBody?.error || '';
+            errorMessage = responseBody?.error || "";
           } catch {
-            errorMessage = error.message || '';
+            errorMessage = error.message || "";
           }
         } else {
-          errorMessage = error.message || '';
+          errorMessage = error.message || "";
         }
-        
-        if (errorMessage.toLowerCase().includes('not enough credits')) {
-          setErrorMsg("You don't have enough credits. Please top up or upgrade your plan.");
+
+        if (errorMessage.toLowerCase().includes("not enough credits")) {
+          setErrorMsg("You don't have enough credits. Please add more credits.");
           return;
         }
-        
-        setErrorMsg('Something went wrong. Please try again.');
+
+        setErrorMsg("Something went wrong. Please try again.");
         return;
       }
 
       if (responseData?.error) {
         const errorMessage = responseData.error;
-        
-        if (errorMessage.toLowerCase().includes('not enough credits')) {
-          setErrorMsg("You don't have enough credits. Please top up or upgrade your plan.");
+
+        if (errorMessage.toLowerCase().includes("not enough credits")) {
+          setErrorMsg("You don't have enough credits. Please add more credits.");
           return;
         }
-        
-        setErrorMsg('Something went wrong. Please try again.');
+
+        setErrorMsg("Something went wrong. Please try again.");
         return;
       }
 
@@ -118,11 +118,11 @@ export function GenerateRecipeView() {
         setRecipeId(responseData.recipe_id);
         setRecipe(responseData.recipe);
       } else {
-        setErrorMsg('Failed to generate recipe. Please try again.');
+        setErrorMsg("Failed to generate recipe. Please try again.");
       }
     } catch (err) {
-      console.error('Unexpected error:', err);
-      setErrorMsg('Something went wrong. Please try again.');
+      console.error("Unexpected error:", err);
+      setErrorMsg("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -137,8 +137,8 @@ export function GenerateRecipeView() {
   const handleGenerateAnother = () => {
     setRecipe(null);
     setRecipeId(null);
-    setErrorMsg('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setErrorMsg("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   if (isLoadingDefaults) {
@@ -152,19 +152,19 @@ export function GenerateRecipeView() {
   return (
     <div className="p-6 space-y-6">
       <div className="max-w-4xl mx-auto">
-        <RecipeForm 
-          onSubmit={handleFormSubmit} 
-          isLoading={isLoading} 
+        <RecipeForm
+          onSubmit={handleFormSubmit}
+          isLoading={isLoading}
           isRegistered={true}
           isGuestBlocked={false}
           defaultValues={userDefaults}
         />
       </div>
-      
+
       {(recipe || isLoading || errorMsg) && (
         <div ref={resultRef} className="max-w-4xl mx-auto">
-          <RecipeCard 
-            recipe={recipe || { title: '', ingredients: [] }} 
+          <RecipeCard
+            recipe={recipe || { title: "", ingredients: [] }}
             recipeId={recipeId || undefined}
             onGenerateAnother={handleGenerateAnother}
             isLoading={isLoading}
