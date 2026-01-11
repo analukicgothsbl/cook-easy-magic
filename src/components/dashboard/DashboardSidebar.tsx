@@ -6,8 +6,6 @@ import {
   Library, 
   CalendarDays, 
   Settings, 
-  User, 
-  Sliders,
   LogOut,
   Utensils
 } from 'lucide-react';
@@ -27,8 +25,6 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
 import type { DashboardView } from '@/pages/Dashboard';
 
 interface DashboardSidebarProps {
@@ -44,11 +40,7 @@ const mainMenuItems = [
   { id: 'cookbook' as const, title: 'My Cook Book', icon: Utensils },
   { id: 'library' as const, title: 'Open Library', icon: Library },
   { id: 'meal-planner' as const, title: 'Meal Planner', icon: CalendarDays },
-];
-
-const settingsItems = [
-  { id: 'settings-basic' as const, title: 'Basic', icon: User },
-  { id: 'settings-personalized' as const, title: 'Personalized', icon: Sliders },
+  { id: 'settings' as const, title: 'Settings', icon: Settings },
 ];
 
 export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarProps) {
@@ -56,8 +48,6 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
   const collapsed = state === 'collapsed';
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
-
-  const isSettingsActive = activeView.startsWith('settings-');
 
   const handleSignOut = async () => {
     await signOut();
@@ -100,40 +90,6 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <Collapsible defaultOpen={isSettingsActive} className="group/collapsible">
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex w-full items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  {!collapsed && <span>Settings</span>}
-                </div>
-                {!collapsed && (
-                  <ChevronDown className="w-4 h-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                )}
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {settingsItems.map((item) => (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        onClick={() => onViewChange(item.id)}
-                        isActive={activeView === item.id}
-                        tooltip={item.title}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </Collapsible>
         </SidebarGroup>
       </SidebarContent>
 
