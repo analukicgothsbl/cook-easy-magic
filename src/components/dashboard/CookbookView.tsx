@@ -147,76 +147,70 @@ const RecipePage = React.forwardRef<HTMLDivElement, {
     const instructions = getInstructions();
 
     return (
-      <div ref={ref} className={`h-full bg-card p-4 overflow-hidden ${isLeft ? 'rounded-r-sm' : 'rounded-l-sm'} border border-border/30`}>
+      <div ref={ref} className={`h-full bg-card p-3 overflow-hidden ${isLeft ? 'rounded-r-sm' : 'rounded-l-sm'} border border-border/30`}>
         <div className="h-full flex flex-col">
-          {/* Recipe Image */}
-          <div className="w-full h-24 md:h-32 mb-3 rounded-lg overflow-hidden bg-gradient-to-br from-primary/10 to-accent flex-shrink-0">
+          {/* Recipe Image - smaller */}
+          <div className="w-full h-16 md:h-20 mb-2 rounded-lg overflow-hidden bg-gradient-to-br from-primary/10 to-accent flex-shrink-0">
             {imageUrl ? (
               <img src={imageUrl} alt={recipe.title} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <ChefHat className="w-10 h-10 text-primary/30" />
+                <ChefHat className="w-8 h-8 text-primary/30" />
               </div>
             )}
           </div>
 
           {/* Recipe Title */}
-          <h3 className="text-base md:text-lg font-bold text-foreground mb-1 line-clamp-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h3 className="text-sm md:text-base font-bold text-foreground mb-1 line-clamp-1" style={{ fontFamily: "'Playfair Display', serif" }}>
             {recipe.title}
           </h3>
 
           {/* Meta Info */}
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
+          <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground mb-1 flex-shrink-0">
             {recipe.time_minutes && (
               <span className="flex items-center gap-0.5">
-                <Clock className="w-3 h-3" />
+                <Clock className="w-2.5 h-2.5" />
                 {recipe.time_minutes}m
               </span>
             )}
             {recipe.servings && (
               <span className="flex items-center gap-0.5">
-                <Users className="w-3 h-3" />
+                <Users className="w-2.5 h-2.5" />
                 {recipe.servings}
               </span>
             )}
             {recipe.difficulty && (
-              <span className="capitalize text-primary text-xs">
+              <span className="capitalize text-primary">
                 {recipe.difficulty}
               </span>
             )}
           </div>
 
-          {/* Content - Ingredients & Instructions */}
-          <div className="flex-1 overflow-hidden text-xs">
-            {/* Ingredients */}
-            <div className="mb-2">
-              <h4 className="font-semibold text-foreground mb-1">Ingredients</h4>
-              <ul className="list-disc list-inside text-muted-foreground space-y-0.5 max-h-16 overflow-hidden">
-                {ingredients.slice(0, 5).map((ing, idx) => (
-                  <li key={idx} className="truncate">{formatIngredient(ing)}</li>
+          {/* Content - Ingredients & Instructions - Scrollable */}
+          <div className="flex-1 overflow-y-auto text-[10px] space-y-2 pr-1 min-h-0">
+            {/* Ingredients - Full List */}
+            <div>
+              <h4 className="font-semibold text-foreground mb-1 sticky top-0 bg-card">Ingredients</h4>
+              <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                {ingredients.map((ing, idx) => (
+                  <li key={idx} className="leading-tight">{formatIngredient(ing)}</li>
                 ))}
-                {ingredients.length > 5 && (
-                  <li className="text-primary">+{ingredients.length - 5} more...</li>
-                )}
               </ul>
             </div>
 
-            {/* Instructions Preview */}
+            {/* Instructions - Full List */}
             <div>
-              <h4 className="font-semibold text-foreground mb-1">Instructions</h4>
-              <ol className="list-decimal list-inside text-muted-foreground space-y-0.5 max-h-20 overflow-hidden">
-                {instructions.slice(0, 3).map((step, idx) => (
-                  <li key={idx} className="truncate">{typeof step === 'string' ? step.replace(/^\d+\.\s*/, '') : step}</li>
+              <h4 className="font-semibold text-foreground mb-1 sticky top-0 bg-card">Instructions</h4>
+              <ol className="list-decimal list-inside text-muted-foreground space-y-1">
+                {instructions.map((step, idx) => (
+                  <li key={idx} className="leading-tight">{typeof step === 'string' ? step.replace(/^\d+\.\s*/, '') : step}</li>
                 ))}
-                {instructions.length > 3 && (
-                  <li className="text-primary list-none">+{instructions.length - 3} more steps...</li>
-                )}
               </ol>
             </div>
           </div>
 
           {/* Footer with heart */}
-          <div className="flex items-center justify-end pt-1 border-t border-border/50 mt-1">
+          <div className="flex items-center justify-end pt-1 border-t border-border/50 mt-1 flex-shrink-0">
             <Heart className="w-3 h-3 text-destructive fill-destructive" />
           </div>
         </div>
