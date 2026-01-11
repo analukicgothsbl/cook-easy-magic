@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Users, ChefHat, X, Loader2, BookOpen, Heart, ArrowUpDown, Flame, Wheat, Droplets } from "lucide-react";
+import { Clock, Users, ChefHat, X, Loader2, BookOpen, Heart, Flame, Wheat, Droplets } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Recipe } from "@/components/RecipeCard";
@@ -8,7 +8,9 @@ import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type SortOption = "newest" | "meal_category" | "cuisine" | "time_minutes";
+type MealCategoryFilter = "all" | "breakfast" | "lunch" | "dinner" | "dessert" | "snack";
+type CuisineFilter = "all" | "any_surprise_me" | "home_style_traditional" | "italian" | "mediterranean" | "mexican" | "asian" | "balkan" | "healthy_light" | "comfort_food";
+type TimeSort = "none" | "asc" | "desc";
 
 interface RecipeWithMeta extends Recipe {
   id: string;
@@ -30,22 +32,48 @@ export function MyRecipesView() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeWithMeta | null>(null);
   const [togglingFavorite, setTogglingFavorite] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [mealFilter, setMealFilter] = useState<MealCategoryFilter>("all");
+  const [cuisineFilter, setCuisineFilter] = useState<CuisineFilter>("all");
+  const [timeSort, setTimeSort] = useState<TimeSort>("none");
 
-  const sortedRecipes = useMemo(() => {
-    const sorted = [...recipes];
-    switch (sortBy) {
-      case "meal_category":
-        return sorted.sort((a, b) => (a.meal_category || "").localeCompare(b.meal_category || ""));
-      case "cuisine":
-        return sorted.sort((a, b) => (a.cuisine || "").localeCompare(b.cuisine || ""));
-      case "time_minutes":
-        return sorted.sort((a, b) => (a.time_minutes || 999) - (b.time_minutes || 999));
-      case "newest":
-      default:
-        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const filteredAndSortedRecipes = useMemo(() => {
+    let result = [...recipes];
+    
+    // Apply meal category filter
+    if (mealFilter !== "all") {
+      result = result.filter((r) => r.meal_category === mealFilter);
     }
-  }, [recipes, sortBy]);
+    
+    // Apply cuisine filter
+    if (cuisineFilter !== "all") {
+      result = result.filter((r) => r.cuisine === cuisineFilter);
+    }
+    
+    // Apply time sort
+    if (timeSort === "asc") {
+      result.sort((a, b) => (a.time_minutes || 999) - (b.time_minutes || 999));
+    } else if (timeSort === "desc") {
+      result.sort((a, b) => (b.time_minutes || 0) - (a.time_minutes || 0));
+    } else {
+      // Default: newest first
+      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+    
+    return result;
+  }, [recipes, mealFilter, cuisineFilter, timeSort]);
+
+  const cuisineLabels: Record<CuisineFilter, string> = {
+    all: "All Cuisines",
+    any_surprise_me: "Any",
+    home_style_traditional: "Traditional",
+    italian: "Italian",
+    mediterranean: "Mediterranean",
+    mexican: "Mexican",
+    asian: "Asian",
+    balkan: "Balkan",
+    healthy_light: "Healthy Light",
+    comfort_food: "Comfort Food",
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -236,25 +264,57 @@ export function MyRecipesView() {
 
   return (
     <div className="p-6">
-      {/* Sort Options */}
-      <div className="flex items-center gap-3 mb-6">
-        <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Sort by:</span>
-        <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sort by..." />
+      {/* Filter Options - Aligned Right */}
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
+        {/* Meal Category Filter */}
+        <Select value={mealFilter} onValueChange={(value: MealCategoryFilter) => setMealFilter(value)}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Meal Category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="newest">Newest First</SelectItem>
-            <SelectItem value="meal_category">Meal Category</SelectItem>
-            <SelectItem value="cuisine">Cuisine</SelectItem>
-            <SelectItem value="time_minutes">Cooking Time</SelectItem>
+            <SelectItem value="all">All Meals</SelectItem>
+            <SelectItem value="breakfast">Breakfast</SelectItem>
+            <SelectItem value="lunch">Lunch</SelectItem>
+            <SelectItem value="dinner">Dinner</SelectItem>
+            <SelectItem value="dessert">Dessert</SelectItem>
+            <SelectItem value="snack">Snack</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Cuisine Filter */}
+        <Select value={cuisineFilter} onValueChange={(value: CuisineFilter) => setCuisineFilter(value)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Cuisine" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Cuisines</SelectItem>
+            <SelectItem value="any_surprise_me">Any</SelectItem>
+            <SelectItem value="home_style_traditional">Traditional</SelectItem>
+            <SelectItem value="italian">Italian</SelectItem>
+            <SelectItem value="mediterranean">Mediterranean</SelectItem>
+            <SelectItem value="mexican">Mexican</SelectItem>
+            <SelectItem value="asian">Asian</SelectItem>
+            <SelectItem value="balkan">Balkan</SelectItem>
+            <SelectItem value="healthy_light">Healthy Light</SelectItem>
+            <SelectItem value="comfort_food">Comfort Food</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Cooking Time Sort */}
+        <Select value={timeSort} onValueChange={(value: TimeSort) => setTimeSort(value)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Cooking Time" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Newest First</SelectItem>
+            <SelectItem value="asc">Time: Low to High</SelectItem>
+            <SelectItem value="desc">Time: High to Low</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {sortedRecipes.map((recipe, index) => (
+        {filteredAndSortedRecipes.map((recipe, index) => (
           <motion.div
             key={recipe.id}
             initial={{ opacity: 0, y: 20 }}
