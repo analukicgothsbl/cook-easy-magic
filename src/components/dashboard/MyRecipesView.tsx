@@ -337,26 +337,35 @@ export function MyRecipesView() {
             </div>
 
             {/* Content */}
-            <div className="p-3">
-              <h3 className="font-bold text-foreground mb-1 line-clamp-1 text-sm">{recipe.title}</h3>
-              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="p-4">
+              <h3 className="font-bold text-foreground mb-2 line-clamp-1">{recipe.title}</h3>
+              {recipe.description_short && (
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                  {recipe.description_short}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 {recipe.meal_category && (
-                  <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full capitalize text-[10px]">
+                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full capitalize">
                     {recipe.meal_category}
                   </span>
                 )}
-                {recipe.cuisine && (
-                  <span className="px-2 py-0.5 bg-accent/50 text-foreground rounded-full capitalize text-[10px]">
-                    {recipe.cuisine}
+                {recipe.time_minutes && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {recipe.time_minutes} min
                   </span>
                 )}
-                {recipe.time_minutes && (
-                  <span className="flex items-center gap-0.5">
-                    <Clock className="w-3 h-3" />
-                    {recipe.time_minutes}m
+                {recipe.servings && (
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {recipe.servings} servings
                   </span>
                 )}
               </div>
+              <button className="mt-3 text-sm text-primary font-medium hover:underline">
+                Show more...
+              </button>
             </div>
 
             {/* Favorite Heart */}
