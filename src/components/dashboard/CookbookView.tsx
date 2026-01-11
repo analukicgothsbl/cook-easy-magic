@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import HTMLFlipBook from 'react-pageflip';
-import { Clock, Users, ChefHat, Loader2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Users, ChefHat, Loader2, Heart, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { Recipe } from '@/components/RecipeCard';
 import type { Json } from '@/integrations/supabase/types';
 import React from 'react';
+import { generateCookbookPDF, downloadBlob } from '@/lib/pdfGenerator';
+import { toast } from 'sonner';
 
 interface RecipeWithMeta extends Recipe {
   id: string;
@@ -228,6 +230,8 @@ export function CookbookView() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState({ progress: 0, message: '' });
   const bookRef = useRef<{ pageFlip: () => { flipNext: () => void; flipPrev: () => void; getCurrentPageIndex: () => number; getPageCount: () => number } }>(null);
 
   // Fetch user name
@@ -461,6 +465,65 @@ export function CookbookView() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (recipes.length === 0) return;
+    
+    setIsGeneratingPDF(true);
+    setPdfProgress({ progress: 0, message: 'Starting...' });
+    
+    try {
+      // Prepare recipes with image URLs for PDF
+      const recipesForPDF: Record<string, Array<{
+        id: string;
+        title: string;
+        meal_category?: string;
+        time_minutes?: number;
+        servings?: number;
+        difficulty?: string;
+        ingredients?: (string | Ingredient)[];
+        instructions?: string | string[];
+        tips?: string;
+        imageUrl?: string;
+      }>> = {};
+      
+      Object.entries(recipesByCategory).forEach(([category, categoryRecipes]) => {
+        recipesForPDF[category] = categoryRecipes.map(recipe => ({
+          id: recipe.id,
+          title: recipe.title,
+          meal_category: recipe.meal_category,
+          time_minutes: recipe.time_minutes,
+          servings: recipe.servings,
+          difficulty: recipe.difficulty,
+          ingredients: recipe.ingredients as (string | Ingredient)[],
+          instructions: recipe.instructions,
+          tips: recipe.tips,
+          imageUrl: recipeImages[recipe.id],
+        }));
+      });
+      
+      const blob = await generateCookbookPDF(
+        userName,
+        recipesForPDF,
+        (progress, message) => setPdfProgress({ progress, message })
+      );
+      
+      const date = new Date().toISOString().split('T')[0];
+      downloadBlob(blob, `${userName.toLowerCase()}-cookbook-${date}.pdf`);
+      
+      toast.success('Your cookbook is ready!', {
+        description: 'The PDF has been downloaded to your device.',
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF', {
+        description: 'Please try again later.',
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+      setPdfProgress({ progress: 0, message: '' });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -543,6 +606,25 @@ export function CookbookView() {
           className="p-3 rounded-full bg-card border border-border hover:bg-primary/10 hover:border-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-md"
         >
           <ChevronRight className="w-5 h-5 text-foreground" />
+        </button>
+
+        {/* Download PDF Button */}
+        <button
+          onClick={handleDownloadPDF}
+          disabled={isGeneratingPDF || recipes.length === 0}
+          className="ml-4 px-4 py-2.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md flex items-center gap-2 text-sm font-medium"
+        >
+          {isGeneratingPDF ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>{pdfProgress.progress}%</span>
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4" />
+              <span>Download PDF</span>
+            </>
+          )}
         </button>
       </div>
 
