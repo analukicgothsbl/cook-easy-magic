@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Clock, Users, ChefHat, Loader2, BookOpen, Heart } from "lucide-react";
+import { Clock, Users, ChefHat, Loader2, BookOpen, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { RecipeDetailModal } from "./RecipeDetailModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +36,8 @@ export function MyRecipesView() {
   const [mealFilter, setMealFilter] = useState<MealCategoryFilter>("all");
   const [cuisineFilter, setCuisineFilter] = useState<CuisineFilter>("all");
   const [timeSort, setTimeSort] = useState<TimeSort>("none");
+  const [currentPage, setCurrentPage] = useState(1);
+  const RECIPES_PER_PAGE = 8;
 
   const filteredAndSortedRecipes = useMemo(() => {
     let result = [...recipes];
@@ -62,6 +64,18 @@ export function MyRecipesView() {
     
     return result;
   }, [recipes, mealFilter, cuisineFilter, timeSort]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAndSortedRecipes.length / RECIPES_PER_PAGE);
+  const paginatedRecipes = useMemo(() => {
+    const startIndex = (currentPage - 1) * RECIPES_PER_PAGE;
+    return filteredAndSortedRecipes.slice(startIndex, startIndex + RECIPES_PER_PAGE);
+  }, [filteredAndSortedRecipes, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [mealFilter, cuisineFilter, timeSort]);
 
   const cuisineLabels: Record<CuisineFilter, string> = {
     all: "All Cuisines",
@@ -315,7 +329,7 @@ export function MyRecipesView() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredAndSortedRecipes.map((recipe, index) => (
+        {paginatedRecipes.map((recipe, index) => (
           <motion.div
             key={recipe.id}
             initial={{ opacity: 0, y: 20 }}
@@ -387,6 +401,43 @@ export function MyRecipesView() {
           </motion.div>
         ))}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end gap-2 mt-6">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="p-2 rounded-lg border border-border hover:bg-primary/10 hover:border-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 text-foreground" />
+          </button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-medium transition-colors ${
+                  currentPage === page
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+          
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-lg border border-border hover:bg-primary/10 hover:border-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight className="w-4 h-4 text-foreground" />
+          </button>
+        </div>
+      )}
 
       {/* Full Recipe Modal */}
       <RecipeDetailModal 
