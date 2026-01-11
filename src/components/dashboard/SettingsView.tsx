@@ -4,6 +4,7 @@ import { User, Lock, Trash2, Loader2, Save, Check, Sliders, CreditCard, Upload, 
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { BuyCreditsModal } from './BuyCreditsModal';
 import { format } from 'date-fns';
 import type { Database } from '@/integrations/supabase/types';
 import {
@@ -125,6 +126,7 @@ const formatReason = (reason: CreditReason): string => {
     admin_bonus: 'Admin Bonus',
     donate_bonus: 'Donation Bonus',
     purchased_credit: 'Purchased Credit',
+    buy_credits_paypal: 'PayPal Purchase',
   };
   return reasonMap[reason] || reason;
 };
@@ -167,6 +169,9 @@ export function SettingsView() {
   const [manageAmount, setManageAmount] = useState<string>('');
   const [manageReason, setManageReason] = useState<CreditReason>('admin_bonus');
   const [isManaging, setIsManaging] = useState(false);
+
+  // Buy credits modal state
+  const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -921,6 +926,7 @@ export function SettingsView() {
           </Table>
         </div>
         <button
+          onClick={() => setIsBuyCreditsModalOpen(true)}
           className="btn-primary w-full mt-6 flex items-center justify-center gap-2"
         >
           <CreditCard className="w-4 h-4" />
@@ -1134,50 +1140,58 @@ export function SettingsView() {
   };
 
   return (
-    <div className="flex h-full">
-      {/* Left Sub-Menu (1/3) */}
-      <div className="w-1/3 max-w-[280px] border-r border-border p-4 bg-card/50">
-        <nav className="space-y-1">
-          {settingsMenuItems.map((item) => {
-            const isAdminOnly = item.adminOnly;
-            const isDisabled = isAdminOnly && userRole !== 'admin';
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => !isDisabled && setActiveTab(item.id)}
-                disabled={isDisabled}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                  activeTab === item.id
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : isDisabled
-                    ? 'text-muted-foreground/50 cursor-not-allowed'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                <item.icon className="w-5 h-5" />
-                <span>{item.title}</span>
-                {isAdminOnly && (
-                  <span className={`ml-auto text-xs px-1.5 py-0.5 rounded ${
-                    userRole === 'admin' 
-                      ? 'bg-primary/10 text-primary' 
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    Admin
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+    <>
+      <div className="flex h-full">
+        {/* Left Sub-Menu (1/3) */}
+        <div className="w-1/3 max-w-[280px] border-r border-border p-4 bg-card/50">
+          <nav className="space-y-1">
+            {settingsMenuItems.map((item) => {
+              const isAdminOnly = item.adminOnly;
+              const isDisabled = isAdminOnly && userRole !== 'admin';
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => !isDisabled && setActiveTab(item.id)}
+                  disabled={isDisabled}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                    activeTab === item.id
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : isDisabled
+                      ? 'text-muted-foreground/50 cursor-not-allowed'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>{item.title}</span>
+                  {isAdminOnly && (
+                    <span className={`ml-auto text-xs px-1.5 py-0.5 rounded ${
+                      userRole === 'admin' 
+                        ? 'bg-primary/10 text-primary' 
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      Admin
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-      {/* Right Content (2/3) */}
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-2xl">
-          {renderContent()}
+        {/* Right Content (2/3) */}
+        <div className="flex-1 p-6 overflow-auto">
+          <div className="max-w-2xl">
+            {renderContent()}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Buy Credits Modal */}
+      <BuyCreditsModal 
+        isOpen={isBuyCreditsModalOpen} 
+        onClose={() => setIsBuyCreditsModalOpen(false)} 
+      />
+    </>
   );
 }
