@@ -83,6 +83,7 @@ const formatReason = (reason: CreditReason): string => {
     friend_bonus: 'Friend Referral',
     generate_recipe: 'Recipe Generation',
     generate_recipe_image: 'Image Generation',
+    bonus_credit: 'Bonus Credit',
   };
   return reasonMap[reason] || reason;
 };

@@ -60,8 +60,8 @@ export const Navbar = () => {
               </Button>
             </>
           ) : (
-            <>
-              <Link to="/auth">
+          <>
+              <Link to="/auth" state={{ mode: "login" }}>
                 <Button
                   variant="outline"
                   className="bg-secondary text-secondary-foreground border-2 border-border hover:border-primary hover:bg-secondary font-medium transition-all duration-200"
@@ -69,7 +69,7 @@ export const Navbar = () => {
                   Login
                 </Button>
               </Link>
-              <Link to="/auth">
+              <Link to="/auth" state={{ mode: "signup" }}>
                 <Button
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                 >
