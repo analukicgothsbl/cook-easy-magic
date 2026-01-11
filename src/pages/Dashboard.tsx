@@ -20,8 +20,7 @@ export type DashboardView =
   | 'cookbook' 
   | 'library' 
   | 'meal-planner' 
-  | 'settings-basic' 
-  | 'settings-personalized';
+  | 'settings';
 
 const Dashboard = () => {
   const [activeView, setActiveView] = useState<DashboardView>('overview');
@@ -58,9 +57,8 @@ const Dashboard = () => {
         return <FavoriteRecipesView />;
       case 'library':
         return <LibraryView />;
-      case 'settings-basic':
-      case 'settings-personalized':
-        return <SettingsView activeTab={activeView === 'settings-basic' ? 'basic' : 'personalized'} />;
+      case 'settings':
+        return <SettingsView />;
       case 'cookbook':
         return <CookbookView />;
       case 'meal-planner':
