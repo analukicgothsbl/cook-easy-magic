@@ -131,7 +131,12 @@ const formatReason = (reason: CreditReason): string => {
   return reasonMap[reason] || reason;
 };
 
-export function SettingsView() {
+interface SettingsViewProps {
+  initialTab?: string | null;
+  onTabChange?: () => void;
+}
+
+export function SettingsView({ initialTab, onTabChange }: SettingsViewProps) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingsTab>('basic');
   const [isLoading, setIsLoading] = useState(true);
@@ -240,6 +245,24 @@ export function SettingsView() {
 
     fetchUserData();
   }, [user]);
+
+  // Handle initial tab from navigation state
+  useEffect(() => {
+    if (initialTab) {
+      // Map 'credits' to 'credit-billing' for backwards compatibility
+      const tabMap: Record<string, SettingsTab> = {
+        'credits': 'credit-billing',
+        'credit-billing': 'credit-billing',
+        'basic': 'basic',
+        'personalized': 'personalized',
+        'credit-usage': 'credit-usage',
+        'credit-manage': 'credit-manage',
+      };
+      const mappedTab = tabMap[initialTab] || 'credit-billing';
+      setActiveTab(mappedTab);
+      onTabChange?.();
+    }
+  }, [initialTab, onTabChange]);
 
   const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
