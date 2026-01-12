@@ -131,13 +131,9 @@ const formatReason = (reason: CreditReason): string => {
   return reasonMap[reason] || reason;
 };
 
-interface SettingsViewProps {
-  initialTab?: SettingsTab;
-}
-
-export function SettingsView({ initialTab }: SettingsViewProps) {
+export function SettingsView() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab || 'basic');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('basic');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
