@@ -11,7 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 
 type MealCategoryFilter = "all" | "breakfast" | "lunch" | "dinner" | "dessert" | "snack";
-type CuisineFilter = "all" | "any_surprise_me" | "home_style_traditional" | "italian" | "mediterranean" | "mexican" | "asian" | "balkan" | "healthy_light" | "comfort_food";
+type CuisineFilter =
+  | "all"
+  | "any_surprise_me"
+  | "home_style_traditional"
+  | "italian"
+  | "mediterranean"
+  | "mexican"
+  | "asian"
+  | "balkan"
+  | "healthy_light"
+  | "comfort_food";
 type TimeSort = "none" | "asc" | "desc";
 
 interface RecipeWithMeta extends Recipe {
@@ -44,17 +54,17 @@ export function MyRecipesView() {
 
   const filteredAndSortedRecipes = useMemo(() => {
     let result = [...recipes];
-    
+
     // Apply meal category filter
     if (mealFilter !== "all") {
       result = result.filter((r) => r.meal_category === mealFilter);
     }
-    
+
     // Apply cuisine filter
     if (cuisineFilter !== "all") {
       result = result.filter((r) => r.cuisine === cuisineFilter);
     }
-    
+
     // Apply time sort
     if (timeSort === "asc") {
       result.sort((a, b) => (a.time_minutes || 999) - (b.time_minutes || 999));
@@ -64,7 +74,7 @@ export function MyRecipesView() {
       // Default: newest first
       result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
-    
+
     return result;
   }, [recipes, mealFilter, cuisineFilter, timeSort]);
 
@@ -262,7 +272,7 @@ export function MyRecipesView() {
       console.error("Error toggling favorite:", error);
       toast.error("Failed to update favorite");
     } finally {
-    setTogglingFavorite(null);
+      setTogglingFavorite(null);
     }
   };
 
@@ -280,13 +290,13 @@ export function MyRecipesView() {
 
       toast.dismiss(loadingToast);
 
-      if (error || !data?.success) {
+      // ✅ FIX: check `ok`, not `success`
+      if (error || !data?.ok) {
         console.error("Image generation error:", error || data?.error, "request_id:", data?.request_id);
         toast.error("Image generation failed");
         return;
       }
 
-      // Update local state with new image
       setRecipeImages((prev) => ({
         ...prev,
         [recipeId]: data.image_url,
@@ -422,9 +432,7 @@ export function MyRecipesView() {
             <div className="p-4 pb-3">
               <h3 className="font-bold text-foreground mb-2 line-clamp-1">{recipe.title}</h3>
               {recipe.description_short && (
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {recipe.description_short}
-                </p>
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{recipe.description_short}</p>
               )}
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 {recipe.meal_category && (
@@ -446,9 +454,7 @@ export function MyRecipesView() {
                 )}
               </div>
               <div className="flex items-center justify-between mt-3">
-                <button className="text-sm text-primary font-medium hover:underline">
-                  Show more...
-                </button>
+                <button className="text-sm text-primary font-medium hover:underline">Show more...</button>
                 {/* Favorite Heart */}
                 <button
                   onClick={(e) => toggleFavorite(e, recipe.id)}
@@ -479,7 +485,7 @@ export function MyRecipesView() {
           >
             <ChevronLeft className="w-4 h-4 text-foreground" />
           </button>
-          
+
           <div className="flex items-center gap-1">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
@@ -495,7 +501,7 @@ export function MyRecipesView() {
               </button>
             ))}
           </div>
-          
+
           <button
             onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
@@ -507,10 +513,7 @@ export function MyRecipesView() {
       )}
 
       {/* Full Recipe Modal */}
-      <RecipeDetailModal 
-        recipe={selectedRecipe} 
-        onClose={() => setSelectedRecipe(null)} 
-      />
+      <RecipeDetailModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
     </div>
   );
 }
