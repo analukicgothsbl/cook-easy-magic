@@ -262,17 +262,15 @@ export function LibraryView() {
         body: { recipe_id: recipeId },
       });
 
-      console.log("generate-recipe-image response:", { data, error });
-
       toast.dismiss(loadingToast);
 
-      if (error || !data?.success) {
+      // ✅ backend returns { ok: true, ... }
+      if (error || !data?.ok) {
         console.error("Image generation error:", error || data?.error, "request_id:", data?.request_id);
         toast.error("Image generation failed");
         return;
       }
 
-      // Update local state with new image
       setRecipeImages((prev) => ({
         ...prev,
         [recipeId]: data.image_url,
