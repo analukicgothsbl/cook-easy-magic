@@ -287,7 +287,7 @@ export type Database = {
           {
             foreignKeyName: "recipe_image_recipe_id_fkey"
             columns: ["recipe_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "recipe"
             referencedColumns: ["id"]
           },

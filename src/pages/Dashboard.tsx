@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,11 +26,26 @@ export type DashboardView =
 
 const Dashboard = () => {
   const [activeView, setActiveView] = useState<DashboardView>('overview');
+  const [settingsTab, setSettingsTab] = useState<string | null>(null);
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isCapturingPayment, setIsCapturingPayment] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Handle navigation state (e.g., from RecipeCard "Buy credits" button)
+  useEffect(() => {
+    const state = location.state as { view?: DashboardView; settingsTab?: string } | null;
+    if (state?.view) {
+      setActiveView(state.view);
+      if (state.settingsTab) {
+        setSettingsTab(state.settingsTab);
+      }
+      // Clear the state to prevent re-triggering on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -102,7 +117,7 @@ const Dashboard = () => {
       case 'library':
         return <LibraryView />;
       case 'settings':
-        return <SettingsView />;
+        return <SettingsView initialTab={settingsTab} onTabChange={() => setSettingsTab(null)} />;
       case 'cookbook':
         return <CookbookView />;
       case 'meal-planner':
