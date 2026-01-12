@@ -10,16 +10,14 @@ async function getPayPalAccessToken(): Promise<string> {
   const clientId = Deno.env.get("PAYPAL_CLIENT_ID");
   const clientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
   const env = Deno.env.get("PAYPAL_ENV") || "sandbox";
-  
-  const baseUrl = env === "production" 
-    ? "https://api-m.paypal.com" 
-    : "https://api-m.sandbox.paypal.com";
+
+  const baseUrl = env === "production" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
 
   const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "Authorization": `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
     },
     body: "grant_type=client_credentials",
   });
@@ -44,10 +42,10 @@ serve(async (req) => {
     // Verify user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Create Supabase client with user's token
@@ -58,28 +56,29 @@ serve(async (req) => {
     });
 
     // Get user from token
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Authentication required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Parse request body
     const { order_id } = await req.json();
-    
+
     if (!order_id) {
-      return new Response(
-        JSON.stringify({ error: "Order ID is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Order ID is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const env = Deno.env.get("PAYPAL_ENV") || "sandbox";
-    const baseUrl = env === "production" 
-      ? "https://api-m.paypal.com" 
-      : "https://api-m.sandbox.paypal.com";
+    const baseUrl = env === "production" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
 
     // Get PayPal access token
     const accessToken = await getPayPalAccessToken();
@@ -89,27 +88,27 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
     if (!captureResponse.ok) {
       const error = await captureResponse.text();
       console.error("PayPal capture error:", error);
-      return new Response(
-        JSON.stringify({ error: "Failed to capture payment" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Failed to capture payment" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const captureData = await captureResponse.json();
 
     if (captureData.status !== "COMPLETED") {
       console.error("PayPal order not completed:", captureData);
-      return new Response(
-        JSON.stringify({ error: "Payment was not completed" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Payment was not completed" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Get capture ID
@@ -130,10 +129,10 @@ serve(async (req) => {
 
     if (purchaseError || !purchase) {
       console.error("Purchase not found:", purchaseError);
-      return new Response(
-        JSON.stringify({ error: "Purchase record not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Purchase record not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Update purchase status
@@ -162,45 +161,40 @@ serve(async (req) => {
     if (wallet) {
       await adminSupabase
         .from("credit_wallet")
-        .update({ 
+        .update({
           balance: newBalance,
           updated_at: new Date().toISOString(),
         })
         .eq("user_id", user.id);
     } else {
-      await adminSupabase
-        .from("credit_wallet")
-        .insert({
-          user_id: user.id,
-          balance: newBalance,
-          daily_remaining: 0,
-        });
+      await adminSupabase.from("credit_wallet").insert({
+        user_id: user.id,
+        balance: newBalance,
+        daily_remaining: 0,
+      });
     }
 
     // Record credit usage
-    await adminSupabase
-      .from("credit_usage")
-      .insert({
-        user_id: user.id,
-        type: "income",
-        amount: purchase.credits,
-        reason: "buy_credits_paypal",
-      });
+    await adminSupabase.from("credit_usage").insert({
+      user_id: user.id,
+      type: "income",
+      amount: purchase.credits,
+      reason: "buy_credits_paypal",
+    });
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         credits: purchase.credits,
         newBalance,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error) {
     console.error("Error in paypal-capture-order:", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to process payment. Please contact support." }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Failed to process payment. Please contact support." }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
