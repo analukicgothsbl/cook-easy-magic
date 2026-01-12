@@ -384,7 +384,7 @@ export const RecipeCard = ({
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               {isCreditsError ? (
                 <motion.button
-                  onClick={() => navigate('/dashboard', { state: { view: 'settings', settingsTab: 'credits' } })}
+                  onClick={() => navigate('/dashboard', { state: { view: 'settings', settingsTab: 'credit-billing' } })}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="btn-primary flex items-center justify-center gap-2"

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,8 +24,13 @@ export type DashboardView =
   | 'meal-planner' 
   | 'settings';
 
+type SettingsTab = 'basic' | 'personalized' | 'credit-usage' | 'credit-billing' | 'credit-manage';
+
 const Dashboard = () => {
-  const [activeView, setActiveView] = useState<DashboardView>('overview');
+  const location = useLocation();
+  const locationState = location.state as { view?: DashboardView; settingsTab?: SettingsTab } | null;
+  const [activeView, setActiveView] = useState<DashboardView>(locationState?.view || 'overview');
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | undefined>(locationState?.settingsTab);
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -102,7 +107,7 @@ const Dashboard = () => {
       case 'library':
         return <LibraryView />;
       case 'settings':
-        return <SettingsView />;
+        return <SettingsView initialTab={settingsTab} />;
       case 'cookbook':
         return <CookbookView />;
       case 'meal-planner':
