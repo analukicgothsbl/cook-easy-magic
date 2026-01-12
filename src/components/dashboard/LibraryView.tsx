@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Clock, Users, ChefHat, Loader2, BookOpen, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, Users, ChefHat, Loader2, BookOpen, Heart, ChevronLeft, ChevronRight, ImagePlus } from "lucide-react";
 import { RecipeDetailModal } from "./RecipeDetailModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import type { Recipe } from "@/components/RecipeCard";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 type MealCategoryFilter = "all" | "breakfast" | "lunch" | "dinner" | "dessert" | "snack";
 type CuisineFilter = "all" | "any_surprise_me" | "home_style_traditional" | "italian" | "mediterranean" | "mexican" | "asian" | "balkan" | "healthy_light" | "comfort_food";
@@ -37,6 +38,8 @@ export function LibraryView() {
   const [cuisineFilter, setCuisineFilter] = useState<CuisineFilter>("all");
   const [timeSort, setTimeSort] = useState<TimeSort>("none");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
   const RECIPES_PER_PAGE = 8;
 
   const filteredAndSortedRecipes = useMemo(() => {
@@ -93,8 +96,17 @@ export function LibraryView() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch user's favorite recipe IDs (if logged in)
+        // Fetch user role to check if admin
         if (user) {
+          const { data: userExtended } = await supabase
+            .from("user_extended")
+            .select("role")
+            .eq("user_id", user.id)
+            .single();
+
+          setIsAdmin(userExtended?.role === "admin");
+
+          // Fetch user's favorite recipe IDs
           const { data: favData } = await supabase
             .from("recipe_favorites")
             .select("recipe_id")
@@ -227,7 +239,43 @@ export function LibraryView() {
       console.error("Error toggling favorite:", error);
       toast.error("Failed to update favorite");
     } finally {
-      setTogglingFavorite(null);
+    setTogglingFavorite(null);
+    }
+  };
+
+  const generateImage = async (e: React.MouseEvent, recipeId: string) => {
+    e.stopPropagation();
+    if (!user || generatingImageFor) return;
+
+    setGeneratingImageFor(recipeId);
+    const loadingToast = toast.loading("Generating image...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-recipe-image", {
+        body: { recipe_id: recipeId },
+      });
+
+      toast.dismiss(loadingToast);
+
+      if (error || !data?.success) {
+        console.error("Image generation error:", error || data?.error, "request_id:", data?.request_id);
+        toast.error("Image generation failed");
+        return;
+      }
+
+      // Update local state with new image
+      setRecipeImages((prev) => ({
+        ...prev,
+        [recipeId]: data.image_url,
+      }));
+
+      toast.success("Image generated successfully");
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      console.error("Image generation exception:", err);
+      toast.error("Image generation failed");
+    } finally {
+      setGeneratingImageFor(null);
     }
   };
 
@@ -316,7 +364,7 @@ export function LibraryView() {
             onClick={() => setSelectedRecipe(recipe)}
           >
             {/* Square Recipe Image */}
-            <div className="aspect-square bg-gradient-to-br from-primary/10 to-accent/20 flex items-center justify-center overflow-hidden">
+            <div className="aspect-square bg-gradient-to-br from-primary/10 to-accent/20 flex items-center justify-center overflow-hidden relative">
               {recipeImages[recipe.id] ? (
                 <img
                   src={recipeImages[recipe.id]}
@@ -325,6 +373,25 @@ export function LibraryView() {
                 />
               ) : (
                 <ChefHat className="w-12 h-12 text-primary/40" />
+              )}
+              {/* Admin Generate Image Button */}
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                  onClick={(e) => generateImage(e, recipe.id)}
+                  disabled={generatingImageFor === recipe.id}
+                >
+                  {generatingImageFor === recipe.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ImagePlus className="w-4 h-4" />
+                  )}
+                  <span className="ml-1 text-xs">
+                    {generatingImageFor === recipe.id ? "Generating..." : "Generate"}
+                  </span>
+                </Button>
               )}
             </div>
 
