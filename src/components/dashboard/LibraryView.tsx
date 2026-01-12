@@ -11,7 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 
 type MealCategoryFilter = "all" | "breakfast" | "lunch" | "dinner" | "dessert" | "snack";
-type CuisineFilter = "all" | "any_surprise_me" | "home_style_traditional" | "italian" | "mediterranean" | "mexican" | "asian" | "balkan" | "healthy_light" | "comfort_food";
+type CuisineFilter =
+  | "all"
+  | "any_surprise_me"
+  | "home_style_traditional"
+  | "italian"
+  | "mediterranean"
+  | "mexican"
+  | "asian"
+  | "balkan"
+  | "healthy_light"
+  | "comfort_food";
 type TimeSort = "none" | "asc" | "desc";
 
 interface RecipeWithMeta extends Recipe {
@@ -44,17 +54,17 @@ export function LibraryView() {
 
   const filteredAndSortedRecipes = useMemo(() => {
     let result = [...recipes];
-    
+
     // Apply meal category filter
     if (mealFilter !== "all") {
       result = result.filter((r) => r.meal_category === mealFilter);
     }
-    
+
     // Apply cuisine filter
     if (cuisineFilter !== "all") {
       result = result.filter((r) => r.cuisine === cuisineFilter);
     }
-    
+
     // Apply time sort
     if (timeSort === "asc") {
       result.sort((a, b) => (a.time_minutes || 999) - (b.time_minutes || 999));
@@ -64,7 +74,7 @@ export function LibraryView() {
       // Default: newest first
       result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
-    
+
     return result;
   }, [recipes, mealFilter, cuisineFilter, timeSort]);
 
@@ -107,10 +117,7 @@ export function LibraryView() {
           setIsAdmin(userExtended?.role === "admin");
 
           // Fetch user's favorite recipe IDs
-          const { data: favData } = await supabase
-            .from("recipe_favorites")
-            .select("recipe_id")
-            .eq("user_id", user.id);
+          const { data: favData } = await supabase.from("recipe_favorites").select("recipe_id").eq("user_id", user.id);
 
           if (favData) {
             setFavoriteIds(new Set(favData.map((f) => f.recipe_id)));
@@ -120,7 +127,8 @@ export function LibraryView() {
         // Fetch ALL recipes from the recipe table (not user-specific)
         const { data, error } = await supabase
           .from("recipe")
-          .select(`
+          .select(
+            `
             id,
             title,
             description_short,
@@ -137,7 +145,8 @@ export function LibraryView() {
             tips,
             nutrition_estimate,
             created_at
-          `)
+          `,
+          )
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -220,9 +229,7 @@ export function LibraryView() {
         toast.success("Removed from favorites");
       } else {
         // Add to favorites
-        const { error } = await supabase
-          .from("recipe_favorites")
-          .insert({ user_id: user.id, recipe_id: recipeId });
+        const { error } = await supabase.from("recipe_favorites").insert({ user_id: user.id, recipe_id: recipeId });
 
         if (error) {
           if (error.code === "23505") {
@@ -239,7 +246,7 @@ export function LibraryView() {
       console.error("Error toggling favorite:", error);
       toast.error("Failed to update favorite");
     } finally {
-    setTogglingFavorite(null);
+      setTogglingFavorite(null);
     }
   };
 
@@ -254,6 +261,8 @@ export function LibraryView() {
       const { data, error } = await supabase.functions.invoke("generate-recipe-image", {
         body: { recipe_id: recipeId },
       });
+
+      console.log("generate-recipe-image response:", { data, error });
 
       toast.dismiss(loadingToast);
 
@@ -399,9 +408,7 @@ export function LibraryView() {
             <div className="p-4 pb-3">
               <h3 className="font-bold text-foreground mb-2 line-clamp-1">{recipe.title}</h3>
               {recipe.description_short && (
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {recipe.description_short}
-                </p>
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{recipe.description_short}</p>
               )}
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 {recipe.meal_category && (
@@ -423,9 +430,7 @@ export function LibraryView() {
                 )}
               </div>
               <div className="flex items-center justify-between mt-3">
-                <button className="text-sm text-primary font-medium hover:underline">
-                  Show more...
-                </button>
+                <button className="text-sm text-primary font-medium hover:underline">Show more...</button>
                 {/* Favorite Heart */}
                 <button
                   onClick={(e) => toggleFavorite(e, recipe.id)}
@@ -456,7 +461,7 @@ export function LibraryView() {
           >
             <ChevronLeft className="w-4 h-4 text-foreground" />
           </button>
-          
+
           <div className="flex items-center gap-1">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
@@ -472,7 +477,7 @@ export function LibraryView() {
               </button>
             ))}
           </div>
-          
+
           <button
             onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
@@ -484,10 +489,7 @@ export function LibraryView() {
       )}
 
       {/* Full Recipe Modal */}
-      <RecipeDetailModal 
-        recipe={selectedRecipe} 
-        onClose={() => setSelectedRecipe(null)} 
-      />
+      <RecipeDetailModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
     </div>
   );
 }
