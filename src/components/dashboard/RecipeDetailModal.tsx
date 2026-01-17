@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, ChefHat, X, Flame } from 'lucide-react';
+import { Clock, Users, ChefHat, X, Flame, Download } from 'lucide-react';
 import type { Recipe } from '@/components/RecipeCard';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface RecipeWithMeta extends Recipe {
   id: string;
@@ -64,6 +65,77 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
   };
 
   const instructions = getInstructions();
+
+  const handleDownloadTxt = () => {
+    if (!recipe) return;
+    
+    const cuisineDisplay = formatCuisine(recipe.cuisine);
+    
+    let content = `${recipe.title}\n`;
+    content += `${'='.repeat(recipe.title.length)}\n\n`;
+    
+    if (recipe.description_short) {
+      content += `${recipe.description_short}\n\n`;
+    }
+    
+    // Meta info
+    const metaParts: string[] = [];
+    if (recipe.meal_category) metaParts.push(`Meal: ${recipe.meal_category}`);
+    if (recipe.time_minutes) metaParts.push(`Time: ${recipe.time_minutes} min`);
+    if (recipe.servings) metaParts.push(`Servings: ${recipe.servings}`);
+    if (recipe.difficulty) metaParts.push(`Difficulty: ${recipe.difficulty}`);
+    if (cuisineDisplay) metaParts.push(`Cuisine: ${cuisineDisplay}`);
+    if (metaParts.length > 0) {
+      content += metaParts.join(' | ') + '\n\n';
+    }
+    
+    // Nutrition
+    if (recipe.nutrition_estimate) {
+      content += `Nutrition (per serving):\n`;
+      content += `  Calories: ${recipe.nutrition_estimate.calories} kcal\n`;
+      content += `  Protein: ${recipe.nutrition_estimate.protein}\n`;
+      content += `  Carbs: ${recipe.nutrition_estimate.carbs}\n`;
+      content += `  Fat: ${recipe.nutrition_estimate.fat}\n\n`;
+    }
+    
+    // Ingredients
+    if (recipe.ingredients && recipe.ingredients.length > 0) {
+      content += `Ingredients:\n`;
+      content += `-----------\n`;
+      recipe.ingredients.forEach((ing) => {
+        content += `• ${formatIngredient(ing)}\n`;
+      });
+      content += `\n`;
+    }
+    
+    // Instructions
+    if (instructions.length > 0) {
+      content += `Instructions:\n`;
+      content += `-------------\n`;
+      instructions.forEach((step, i) => {
+        content += `${i + 1}. ${step}\n`;
+      });
+      content += `\n`;
+    }
+    
+    // Tips
+    if (recipe.tips) {
+      content += `Pro Tip:\n`;
+      content += `--------\n`;
+      content += `${recipe.tips}\n`;
+    }
+    
+    // Create and download file
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${recipe.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   if (!recipe) return null;
 
@@ -208,6 +280,27 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                 <p className="text-muted-foreground text-sm">{recipe.tips}</p>
               </div>
             )}
+
+            {/* Recipe Actions */}
+            <div className="pt-4 border-t border-border">
+              <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleDownloadTxt}
+                        className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
+                      >
+                        <Download className="w-5 h-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Download as .txt</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
           </div>
         </motion.div>
       </motion.div>
