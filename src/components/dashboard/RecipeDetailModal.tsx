@@ -1,8 +1,8 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, ChefHat, X, Flame, Download } from 'lucide-react';
+import { Clock, Users, ChefHat, X, Flame, Download, Copy, Check } from 'lucide-react';
 import type { Recipe } from '@/components/RecipeCard';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
 interface RecipeWithMeta extends Recipe {
   id: string;
   created_at: string;
@@ -66,8 +66,10 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
 
   const instructions = getInstructions();
 
-  const handleDownloadTxt = () => {
-    if (!recipe) return;
+  const [copied, setCopied] = useState(false);
+
+  const getRecipeTextContent = () => {
+    if (!recipe) return '';
     
     const cuisineDisplay = formatCuisine(recipe.cuisine);
     
@@ -125,6 +127,13 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
       content += `${recipe.tips}\n`;
     }
     
+    return content;
+  };
+
+  const handleDownloadTxt = () => {
+    const content = getRecipeTextContent();
+    if (!content || !recipe) return;
+    
     // Create and download file
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -135,6 +144,19 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleCopyToClipboard = async () => {
+    const content = getRecipeTextContent();
+    if (!content) return;
+    
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy recipe:', err);
+    }
   };
 
   if (!recipe) return null;
@@ -296,6 +318,21 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Download as .txt</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleCopyToClipboard}
+                        className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
+                      >
+                        {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{copied ? 'Copied!' : 'Copy to clipboard'}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
