@@ -48,31 +48,13 @@ interface GeneratedRecipe {
   nutrition_estimate: NutritionEstimate;
 }
 
-function base64ToUint8Array(base64: string): Uint8Array {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-  return bytes;
-}
-
-// -------------------- Image generation settings --------------------
-const IMAGE_BUCKET = "recipe-images";
-const IMAGE_MODEL = "dall-e-2";
-const IMAGE_SIZE = "512x512";
-const IMAGE_N = 1;
-
-// Optional: track fixed/estimated image USD cost in DB (NO credit charge based on this)
-const IMAGE_COST_USD_ESTIMATE = 0.8;
-// ------------------------------------------------------------------
-
 // -------------------- CREDIT COST (USD) from tokens --------------------
 // costUsd = (inputTokens * 0.00015) + (outputTokens * 0.0006)
 function calcCostUsd(inputTokens: number, outputTokens: number) {
   return inputTokens * 0.00015 + outputTokens * 0.0006;
 }
 
-// For “check credits ONCE before OpenAI”, we must precheck with a safe worst-case cost.
+// For "check credits ONCE before OpenAI", we must precheck with a safe worst-case cost.
 // Because you set max_tokens=2000, outputTokens can be up to 2000.
 // Prompt tokens vary; we use a conservative cap for prompt tokens too.
 // Adjust if your prompts grow a lot.
@@ -153,7 +135,7 @@ Deno.serve(async (req) => {
     }
 
     // ------------------------------------------------------------------
-    // Helper: apply ONE charge (USD) AFTER recipe+image generation
+    // Helper: apply ONE charge (USD) AFTER recipe generation
     //
     // Rules you asked:
     // - First use bonusRemaining
@@ -543,7 +525,7 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
         input_tokens: inputTokens,
         output_tokens: outputTokens,
         total_tokens: totalTokens,
-        cost_usd: costUsd, // ✅ as requested
+        cost_usd: costUsd,
       })
       .select("id")
       .single();
@@ -579,73 +561,8 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
       console.log("[recipe_user] linked OK");
     }
 
-    // -------------------- Generate recipe image after save (non-fatal) --------------------
-    let imageUrl: string | null = null;
-    let imageUsdCosts: number = IMAGE_COST_USD_ESTIMATE;
-    let imageGeneratedOk = false;
-
-    try {
-      const imagePrompt =
-        `Photorealistic food photography of ${recipe.title}, ${recipe.description_short}. ` +
-        `Soft natural window light, shallow depth of field, clean modern kitchen background, high detail, ` +
-        `professional food photography, appetizing plating, no text.`;
-
-      const negativePrompt = "text, watermark, logo, blurry, low resolution, oversaturated, cartoon, illustration";
-
-      console.log("[image] generating", { recipeId, model: IMAGE_MODEL, size: IMAGE_SIZE, prompt: imagePrompt });
-
-      const imageRes = await openai.images.generate({
-        model: IMAGE_MODEL,
-        prompt: `${imagePrompt}\nAvoid: ${negativePrompt}`,
-        size: IMAGE_SIZE as any,
-        n: IMAGE_N,
-        response_format: "b64_json",
-      });
-
-      const b64 = imageRes.data?.[0]?.b64_json;
-      if (!b64) {
-        console.error("[image] no b64_json returned", imageRes);
-        throw new Error("Image generation did not return b64_json");
-      }
-
-      const bytes = base64ToUint8Array(b64);
-      const filePath = `${recipeId}/${Date.now()}.png`;
-
-      console.log("[image] uploading", { bucket: IMAGE_BUCKET, filePath, bytes: bytes.length });
-
-      const { error: uploadError } = await supabase.storage
-        .from(IMAGE_BUCKET)
-        .upload(filePath, bytes, { contentType: "image/png", upsert: true });
-
-      if (uploadError) {
-        console.error("[image] upload error", uploadError);
-        throw new Error(`Failed to upload image: ${uploadError.message}`);
-      }
-
-      const { data: publicData } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filePath);
-      imageUrl = publicData?.publicUrl ?? null;
-      imageGeneratedOk = !!imageUrl;
-
-      console.log("[image] uploaded OK", { imageUrl });
-
-      const { error: imageInsertError } = await supabase.from("recipe_image").insert({
-        recipe_id: recipeId,
-        image_url: imageUrl,
-        usd_costs: imageUsdCosts,
-        created_at: new Date().toISOString(),
-      });
-
-      if (imageInsertError) {
-        console.error("[image] recipe_image insert error (non-fatal)", imageInsertError);
-      } else {
-        console.log("[image] recipe_image saved", { recipeId, imageUrl, imageUsdCosts });
-      }
-    } catch (imgErr) {
-      console.error("[image] generation failed (non-fatal)", imgErr);
-    }
-
     // ------------------------------------------------------------------
-    // ✅ APPLY CREDIT CHARGE ONCE (AFTER recipe + image attempt)
+    // ✅ APPLY CREDIT CHARGE ONCE (AFTER recipe generation)
     // - based ONLY on tokens costUsd from recipe generation
     // - uses the snapshot read before OpenAI (wallet read ONCE)
     // ------------------------------------------------------------------
@@ -655,7 +572,6 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
           userId,
           recipeId,
           costUsd,
-          imageGeneratedOk,
         });
 
         await applySingleChargeUsd({
@@ -676,7 +592,6 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
             JSON.stringify({
               error: "Not enough credits",
               recipe_id: recipeId,
-              image_url: imageUrl,
             }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
@@ -686,7 +601,6 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
           JSON.stringify({
             error: "Failed to process credits for recipe generation",
             recipe_id: recipeId,
-            image_url: imageUrl,
           }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
@@ -721,15 +635,19 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
       console.log("[guest] marked used", { guest_id: payload.guest_id });
     }
 
-    // -------------------- Return response --------------------
+    // -------------------- Return response (no image fields) --------------------
     return new Response(
       JSON.stringify({
         recipe_id: recipeId,
-        image_url: imageUrl,
         recipe: {
           ...recipe,
           id: recipeId,
-          image_url: imageUrl,
+        },
+        usage: {
+          inputTokens,
+          outputTokens,
+          totalTokens,
+          costUsd,
         },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
