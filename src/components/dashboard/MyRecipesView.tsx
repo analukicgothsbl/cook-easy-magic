@@ -337,11 +337,12 @@ export function MyRecipesView() {
 
   return (
     <div className="p-6">
-      {/* Subheading */}
-      <p className="text-muted-foreground mb-6">All recipes you've personally generated with CookMaster</p>
-      
-      {/* Filter Options - Aligned Right */}
-      <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
+      {/* Header with Subheading and Filters */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <p className="text-muted-foreground">All recipes you've personally generated with CookMaster</p>
+        
+        {/* Filter Options */}
+        <div className="flex flex-wrap items-center gap-3">
         {/* Meal Category Filter */}
         <Select value={mealFilter} onValueChange={(value: MealCategoryFilter) => setMealFilter(value)}>
           <SelectTrigger className="w-[140px]">
@@ -387,6 +388,7 @@ export function MyRecipesView() {
             <SelectItem value="desc">Time: High to Low</SelectItem>
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
