@@ -336,6 +336,9 @@ export function FavoriteRecipesView() {
 
   return (
     <div className="p-6">
+      {/* Subheading */}
+      <p className="text-muted-foreground mb-6">Recipes you've saved by tapping the heart icon</p>
+      
       {MEAL_CATEGORIES.map((category) => {
         const categoryRecipes = recipesByCategory[category];
         if (!categoryRecipes || categoryRecipes.length === 0) return null;

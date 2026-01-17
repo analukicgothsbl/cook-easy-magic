@@ -311,6 +311,9 @@ export function LibraryView() {
 
   return (
     <div className="p-6">
+      {/* Subheading */}
+      <p className="text-muted-foreground mb-6">A shared library of recipes created by you and other users</p>
+      
       {/* Filter Options - Aligned Right */}
       <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
         {/* Meal Category Filter */}

@@ -337,6 +337,9 @@ export function MyRecipesView() {
 
   return (
     <div className="p-6">
+      {/* Subheading */}
+      <p className="text-muted-foreground mb-6">All recipes you've personally generated with CookMaster</p>
+      
       {/* Filter Options - Aligned Right */}
       <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
         {/* Meal Category Filter */}
