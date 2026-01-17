@@ -104,28 +104,35 @@ Deno.serve(async (req) => {
       return jsonResponse(401, { error: "Unauthorized", request_id: requestId });
     }
 
-    const { data: userExt, error: userExtErr } = await adminClient
+    // Check if user is admin OR owns the recipe
+    const { data: userExt } = await adminClient
       .from("user_extended")
       .select("role")
       .eq("user_id", authedUserId)
       .maybeSingle();
 
-    if (userExtErr) {
-      console.error("[generate-recipe-image] user_extended fetch error", {
-        requestId,
-        userExtErr,
-      });
-      return jsonResponse(500, {
-        error: "Failed to validate role",
-        request_id: requestId,
-      });
-    }
+    const isAdmin = userExt?.role === "admin";
 
-    if (!userExt || userExt.role !== "admin") {
-      return jsonResponse(403, {
-        error: "Admin only",
-        request_id: requestId,
-      });
+    // If not admin, check if user owns this recipe
+    if (!isAdmin) {
+      const { data: recipeOwnership } = await adminClient
+        .from("recipe_user")
+        .select("user_id")
+        .eq("recipe_id", recipe_id)
+        .eq("user_id", authedUserId)
+        .maybeSingle();
+
+      if (!recipeOwnership) {
+        console.error("[generate-recipe-image] User does not own recipe", {
+          requestId,
+          authedUserId,
+          recipe_id,
+        });
+        return jsonResponse(403, {
+          error: "You can only generate images for your own recipes",
+          request_id: requestId,
+        });
+      }
     }
 
     // Read recipe
