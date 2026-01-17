@@ -105,21 +105,46 @@ export function GenerateRecipeView() {
         body: payload,
       });
 
-      if (error) {
-        let errorMessage = "";
+      console.log("[generate-recipe] response:", { responseData, error });
 
+      // Extract error message from response or error object
+      let errorMessage = "";
+      
+      if (error) {
+        console.log("[generate-recipe] error details:", error);
+        
+        // Try to get error from response context (FunctionsHttpError)
         if (error.context && typeof error.context === "object") {
           try {
-            const responseBody = await (error.context as Response).json?.();
-            errorMessage = responseBody?.error || "";
-          } catch {
-            errorMessage = error.message || "";
+            const response = error.context as Response;
+            if (response.json) {
+              // Clone the response first since body can only be read once
+              const responseBody = await response.clone().json();
+              console.log("[generate-recipe] error response body:", responseBody);
+              errorMessage = responseBody?.error || "";
+            }
+          } catch (e) {
+            console.log("[generate-recipe] could not parse error response:", e);
           }
-        } else {
+        }
+        
+        if (!errorMessage) {
           errorMessage = error.message || "";
         }
+      }
 
-        if (errorMessage.toLowerCase().includes("not enough credits")) {
+      // Check response data for error as well
+      if (responseData?.error) {
+        errorMessage = responseData.error;
+      }
+
+      // Handle specific error cases
+      if (errorMessage) {
+        console.log("[generate-recipe] extracted error message:", errorMessage);
+        
+        if (errorMessage.toLowerCase().includes("not enough credits") || 
+            errorMessage.toLowerCase().includes("credit balance") ||
+            errorMessage.toLowerCase().includes("verify credit")) {
           setErrorMsg("You don't have enough credits. Please add more credits.");
           return;
         }
@@ -128,14 +153,9 @@ export function GenerateRecipeView() {
         return;
       }
 
-      if (responseData?.error) {
-        const errorMessage = responseData.error;
-
-        if (errorMessage.toLowerCase().includes("not enough credits")) {
-          setErrorMsg("You don't have enough credits. Please add more credits.");
-          return;
-        }
-
+      // Check for error without parsed message
+      if (error && !responseData?.recipe) {
+        console.log("[generate-recipe] error without message, defaulting");
         setErrorMsg("Something went wrong. Please try again.");
         return;
       }
