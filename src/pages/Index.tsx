@@ -18,6 +18,7 @@ const Index = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isGuestBlocked, setIsGuestBlocked] = useState(false);
   const [lastFormData, setLastFormData] = useState<RecipeFormData | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   
   const formRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -31,6 +32,7 @@ const Index = () => {
       navigate('/dashboard');
     }
   }, [isLoggedIn, guestLoading, navigate]);
+
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -41,12 +43,39 @@ const Index = () => {
     }, 100);
   };
 
+  // Non-blocking image generation after recipe is created
+  const triggerImageGeneration = async (createdRecipeId: string) => {
+    if (!isLoggedIn) return; // Only generate images for logged-in users
+    
+    setIsGeneratingImage(true);
+    try {
+      console.log('[image] triggering generation for recipe:', createdRecipeId);
+      
+      const { error } = await supabase.functions.invoke('generate-recipe-image', {
+        body: { recipe_id: createdRecipeId },
+      });
+
+      if (error) {
+        console.error('[image] generation failed:', error);
+        // Non-fatal - recipe is still visible
+      } else {
+        console.log('[image] generation triggered successfully');
+      }
+    } catch (err) {
+      console.error('[image] unexpected error:', err);
+      // Non-fatal - recipe is still visible
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
   const handleFormSubmit = async (data: RecipeFormData) => {
     setLastFormData(data);
     setIsLoading(true);
     setErrorMsg('');
     setRecipe(null);
     setRecipeId(null);
+    setIsGeneratingImage(false);
     scrollToResult();
 
     try {
@@ -134,10 +163,16 @@ const Index = () => {
         return;
       }
 
-      // Success - set recipe data
+      // Success - set recipe data immediately
       if (responseData?.recipe) {
-        setRecipeId(responseData.recipe_id);
+        const createdRecipeId = responseData.recipe_id;
+        setRecipeId(createdRecipeId);
         setRecipe(responseData.recipe);
+        
+        // Trigger image generation after recipe is displayed (non-blocking)
+        if (createdRecipeId && isLoggedIn) {
+          triggerImageGeneration(createdRecipeId);
+        }
       } else {
         setErrorMsg('Failed to generate recipe. Please try again.');
       }
@@ -160,6 +195,7 @@ const Index = () => {
     setRecipe(null);
     setRecipeId(null);
     setErrorMsg('');
+    setIsGeneratingImage(false);
     scrollToForm();
   };
 

@@ -14,6 +14,7 @@ export function GenerateRecipeView() {
   const [lastFormData, setLastFormData] = useState<RecipeFormData | null>(null);
   const [userDefaults, setUserDefaults] = useState<UserDefaultOptions | undefined>(undefined);
   const [isLoadingDefaults, setIsLoadingDefaults] = useState(true);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -61,12 +62,37 @@ export function GenerateRecipeView() {
     }, 100);
   };
 
+  // Non-blocking image generation after recipe is created
+  const triggerImageGeneration = async (createdRecipeId: string) => {
+    setIsGeneratingImage(true);
+    try {
+      console.log("[image] triggering generation for recipe:", createdRecipeId);
+      
+      const { error } = await supabase.functions.invoke("generate-recipe-image", {
+        body: { recipe_id: createdRecipeId },
+      });
+
+      if (error) {
+        console.error("[image] generation failed:", error);
+        // Non-fatal - recipe is still visible
+      } else {
+        console.log("[image] generation triggered successfully");
+      }
+    } catch (err) {
+      console.error("[image] unexpected error:", err);
+      // Non-fatal - recipe is still visible
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
   const handleFormSubmit = async (data: RecipeFormData) => {
     setLastFormData(data);
     setIsLoading(true);
     setErrorMsg("");
     setRecipe(null);
     setRecipeId(null);
+    setIsGeneratingImage(false);
     scrollToResult();
 
     try {
@@ -114,9 +140,16 @@ export function GenerateRecipeView() {
         return;
       }
 
+      // Success - set recipe data immediately
       if (responseData?.recipe) {
-        setRecipeId(responseData.recipe_id);
+        const createdRecipeId = responseData.recipe_id;
+        setRecipeId(createdRecipeId);
         setRecipe(responseData.recipe);
+        
+        // Trigger image generation after recipe is displayed (non-blocking)
+        if (createdRecipeId) {
+          triggerImageGeneration(createdRecipeId);
+        }
       } else {
         setErrorMsg("Failed to generate recipe. Please try again.");
       }
@@ -138,6 +171,7 @@ export function GenerateRecipeView() {
     setRecipe(null);
     setRecipeId(null);
     setErrorMsg("");
+    setIsGeneratingImage(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
