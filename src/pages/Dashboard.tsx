@@ -12,6 +12,7 @@ import { FavoriteRecipesView } from '@/components/dashboard/FavoriteRecipesView'
 import { LibraryView } from '@/components/dashboard/LibraryView';
 import { CookbookView } from '@/components/dashboard/CookbookView';
 import { SettingsView } from '@/components/dashboard/SettingsView';
+import { MealPlannerView } from '@/components/dashboard/MealPlannerView';
 import { Loader2 } from 'lucide-react';
 
 export type DashboardView = 
@@ -121,13 +122,7 @@ const Dashboard = () => {
       case 'cookbook':
         return <CookbookView />;
       case 'meal-planner':
-        return (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center p-8">
-              <p className="text-muted-foreground">Coming soon...</p>
-            </div>
-          </div>
-        );
+        return <MealPlannerView />;
       default:
         return <OverviewView onNavigate={setActiveView} />;
     }
