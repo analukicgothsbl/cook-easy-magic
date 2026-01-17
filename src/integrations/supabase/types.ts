@@ -163,6 +163,44 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_plan: {
+        Row: {
+          created_at: string
+          id: string
+          meal_slot: string
+          plan_date: string
+          recipe_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meal_slot: string
+          plan_date: string
+          recipe_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meal_slot?: string
+          plan_date?: string
+          recipe_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plan_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipe: {
         Row: {
           budget_level: Database["public"]["Enums"]["budget_level"] | null
