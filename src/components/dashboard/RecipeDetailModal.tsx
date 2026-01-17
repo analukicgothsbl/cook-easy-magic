@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, ChefHat, X, Flame, Download } from 'lucide-react';
+import { Clock, Users, ChefHat, X, Flame, Download, FileText } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import type { Recipe } from '@/components/RecipeCard';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -22,6 +24,7 @@ interface RecipeDetailModalProps {
 }
 
 export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailModalProps) {
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const formatIngredient = (ing: string | Ingredient): string => {
     if (typeof ing === 'string') return ing;
     return `${ing.quantity} ${ing.unit} ${ing.name}`.trim();
@@ -135,6 +138,126 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!recipe) return;
+    
+    setIsGeneratingPdf(true);
+    
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 15;
+      const contentWidth = pageWidth - margin * 2;
+      let yPos = margin;
+      
+      // Helper function to add text with word wrap and page break
+      const addText = (text: string, fontSize: number, isBold = false, color: [number, number, number] = [0, 0, 0]) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        doc.setTextColor(color[0], color[1], color[2]);
+        const lines = doc.splitTextToSize(text, contentWidth);
+        const lineHeight = fontSize * 0.4;
+        
+        lines.forEach((line: string) => {
+          if (yPos + lineHeight > doc.internal.pageSize.getHeight() - margin) {
+            doc.addPage();
+            yPos = margin;
+          }
+          doc.text(line, margin, yPos);
+          yPos += lineHeight;
+        });
+        return lines.length * lineHeight;
+      };
+      
+      // Try to add image if available
+      if (recipe.image_url) {
+        try {
+          const response = await fetch(recipe.image_url);
+          const blob = await response.blob();
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+          
+          // Add image at top (centered, max 180x100)
+          const imgWidth = 180;
+          const imgHeight = 100;
+          const xPos = (pageWidth - imgWidth) / 2;
+          doc.addImage(base64, 'JPEG', xPos, yPos, imgWidth, imgHeight);
+          yPos += imgHeight + 10;
+        } catch (imgError) {
+          console.log('Could not load image for PDF:', imgError);
+        }
+      }
+      
+      // Title
+      addText(recipe.title, 20, true);
+      yPos += 3;
+      
+      // Short description
+      if (recipe.description_short) {
+        addText(recipe.description_short, 11, false, [100, 100, 100]);
+        yPos += 5;
+      }
+      
+      // Meta info line
+      const cuisineDisplay = formatCuisine(recipe.cuisine);
+      const metaParts: string[] = [];
+      if (recipe.meal_category) metaParts.push(recipe.meal_category.charAt(0).toUpperCase() + recipe.meal_category.slice(1));
+      if (recipe.time_minutes) metaParts.push(`${recipe.time_minutes} min`);
+      if (recipe.servings) metaParts.push(`${recipe.servings} servings`);
+      if (recipe.difficulty) metaParts.push(recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1));
+      if (cuisineDisplay) metaParts.push(cuisineDisplay);
+      if (metaParts.length > 0) {
+        addText(metaParts.join('  •  '), 10, false, [80, 80, 80]);
+        yPos += 5;
+      }
+      
+      // Nutrition
+      if (recipe.nutrition_estimate) {
+        const nutritionText = `${recipe.nutrition_estimate.calories} kcal  |  Protein: ${recipe.nutrition_estimate.protein}  |  Carbs: ${recipe.nutrition_estimate.carbs}  |  Fat: ${recipe.nutrition_estimate.fat}`;
+        addText(nutritionText, 9, false, [100, 100, 100]);
+        yPos += 8;
+      }
+      
+      // Ingredients
+      if (recipe.ingredients && recipe.ingredients.length > 0) {
+        addText('Ingredients', 14, true);
+        yPos += 2;
+        recipe.ingredients.forEach((ing) => {
+          addText(`• ${formatIngredient(ing)}`, 10);
+        });
+        yPos += 6;
+      }
+      
+      // Instructions
+      if (instructions.length > 0) {
+        addText('Instructions', 14, true);
+        yPos += 2;
+        instructions.forEach((step, i) => {
+          addText(`${i + 1}. ${step}`, 10);
+          yPos += 2;
+        });
+        yPos += 4;
+      }
+      
+      // Tips
+      if (recipe.tips) {
+        addText('💡 Pro Tip', 12, true);
+        yPos += 1;
+        addText(recipe.tips, 10, false, [80, 80, 80]);
+      }
+      
+      // Save PDF
+      doc.save(`${recipe.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   if (!recipe) return null;
@@ -296,6 +419,21 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Download as .txt</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleDownloadPdf}
+                        disabled={isGeneratingPdf}
+                        className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
+                      >
+                        <FileText className="w-5 h-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isGeneratingPdf ? 'Generating PDF...' : 'Download as .pdf'}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
