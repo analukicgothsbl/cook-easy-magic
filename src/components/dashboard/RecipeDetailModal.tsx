@@ -1,8 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, ChefHat, X, Flame, Download, Share2 } from 'lucide-react';
+import { Clock, Users, ChefHat, X, Flame, Download } from 'lucide-react';
 import type { Recipe } from '@/components/RecipeCard';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
+
 interface RecipeWithMeta extends Recipe {
   id: string;
   created_at: string;
@@ -135,36 +135,6 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  };
-
-  const handleShare = async () => {
-    if (!recipe) return;
-    
-    const shareData = {
-      title: recipe.title,
-      text: recipe.description_short || `Check out this recipe: ${recipe.title}`,
-      url: window.location.href,
-    };
-
-    try {
-      if (navigator.share && navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-      } else {
-        // Fallback: copy to clipboard
-        await navigator.clipboard.writeText(`${recipe.title}\n\n${recipe.description_short || ''}\n\n${window.location.href}`);
-        toast.success('Recipe link copied to clipboard!');
-      }
-    } catch (error) {
-      // User cancelled or error - try clipboard fallback
-      if ((error as Error).name !== 'AbortError') {
-        try {
-          await navigator.clipboard.writeText(`${recipe.title}\n\n${recipe.description_short || ''}\n\n${window.location.href}`);
-          toast.success('Recipe link copied to clipboard!');
-        } catch {
-          toast.error('Failed to share recipe');
-        }
-      }
-    }
   };
 
   if (!recipe) return null;
@@ -326,21 +296,6 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Download as .txt</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={handleShare}
-                        className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
-                      >
-                        <Share2 className="w-5 h-5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Share recipe</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
