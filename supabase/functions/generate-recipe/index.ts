@@ -342,13 +342,29 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     let userId: string | null = null;
 
-    if (authHeader) {
+    console.log("[auth] authHeader present:", !!authHeader);
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.replace("Bearer ", "");
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser(token);
-      if (!error && user) userId = user.id;
+      console.log("[auth] token length:", token?.length);
+      
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser(token);
+        
+        if (error) {
+          console.error("[auth] getUser error:", error.message);
+        }
+        
+        if (user) {
+          userId = user.id;
+          console.log("[auth] user authenticated:", userId);
+        }
+      } catch (authErr) {
+        console.error("[auth] exception:", authErr);
+      }
     }
 
     console.log("[auth] userId", userId);

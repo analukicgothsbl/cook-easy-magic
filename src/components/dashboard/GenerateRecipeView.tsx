@@ -96,6 +96,13 @@ export function GenerateRecipeView() {
     scrollToResult();
 
     try {
+      // Ensure we have a valid session before making the request
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        setErrorMsg("Your session has expired. Please log in again.");
+        return;
+      }
+
       const payload = {
         ...data,
         guest_id: null, // Logged in user
@@ -121,6 +128,11 @@ export function GenerateRecipeView() {
 
         if (errorMessage.toLowerCase().includes("not enough credits")) {
           setErrorMsg("You don't have enough credits. Please add more credits.");
+          return;
+        }
+
+        if (errorMessage.toLowerCase().includes("session") || errorMessage.toLowerCase().includes("authentication")) {
+          setErrorMsg("Your session has expired. Please log in again.");
           return;
         }
 
