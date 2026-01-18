@@ -579,14 +579,13 @@ export function MealPlannerView() {
                           <p className="text-xs text-muted-foreground italic">Custom entry</p>
                         </div>
                       ) : (
-                        <Button
-                          className="w-full h-20 border-dashed border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary"
-                          variant="ghost"
+                        <button
+                          className="w-full py-2 px-4 rounded-full bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                           onClick={() => setAddMealModal({ date: selectedDay, slot: slot.id })}
                         >
-                          <Plus className="w-5 h-5 mr-2" />
+                          <Plus className="w-4 h-4" />
                           Add Recipe
-                        </Button>
+                        </button>
                       )}
                     </div>
                   );
