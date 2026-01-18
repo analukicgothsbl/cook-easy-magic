@@ -54,13 +54,9 @@ function calcCostUsd(inputTokens: number, outputTokens: number) {
   return inputTokens * 0.00015 + outputTokens * 0.0006;
 }
 
-// For "check credits ONCE before OpenAI", we must precheck with a safe worst-case cost.
-// Because you set max_tokens=2000, outputTokens can be up to 2000.
-// Prompt tokens vary; we use a conservative cap for prompt tokens too.
-// Adjust if your prompts grow a lot.
-const MAX_OUTPUT_TOKENS = 2000;
-const MAX_INPUT_TOKENS_ESTIMATE = 2000; // conservative
-const MAX_POSSIBLE_COST_USD = calcCostUsd(MAX_INPUT_TOKENS_ESTIMATE, MAX_OUTPUT_TOKENS);
+// -------------------- FIXED MINIMUM CREDITS PRECHECK --------------------
+// Minimum credits required for recipe generation (precheck)
+const MIN_CREDITS_REQUIRED = 0.9;
 // ----------------------------------------------------------------------
 
 type CreditSnapshot = {
@@ -416,20 +412,28 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log("[credits] precheck max cost", {
+      console.log("[credits] precheck", {
         userId,
         totalAvailable: creditSnapshot.totalAvailable,
-        MAX_POSSIBLE_COST_USD,
-        MAX_INPUT_TOKENS_ESTIMATE,
-        MAX_OUTPUT_TOKENS,
+        MIN_CREDITS_REQUIRED,
       });
 
-      if (creditSnapshot.totalAvailable <= 0 || creditSnapshot.totalAvailable < MAX_POSSIBLE_COST_USD) {
-        // NOTE: This ensures we won't generate content we can't charge for later (based on worst-case).
-        return new Response(JSON.stringify({ error: "Not enough credits" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (creditSnapshot.totalAvailable < MIN_CREDITS_REQUIRED) {
+        console.log("[credits] insufficient credits for recipe generation", {
+          available: creditSnapshot.totalAvailable,
+          required: MIN_CREDITS_REQUIRED,
         });
+        return new Response(
+          JSON.stringify({
+            error: "INSUFFICIENT_CREDITS",
+            min_required: MIN_CREDITS_REQUIRED,
+            available: creditSnapshot.totalAvailable,
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
     }
 
@@ -487,7 +491,7 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
 
     const completion = await openai.chat.completions.create({
       model: openaiModel,
-      max_tokens: MAX_OUTPUT_TOKENS,
+      max_tokens: 2000,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
