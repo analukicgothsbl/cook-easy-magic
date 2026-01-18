@@ -256,8 +256,8 @@ export function MealPlannerView() {
         // Fetch recipe images
         const allRecipeIds = [...new Set([
           ...formattedFavorites.map(r => r.id),
-          ...(mealPlanData || []).map(m => m.recipe_id)
-        ])];
+          ...(mealPlanData || []).map(m => m.recipe_id).filter((id): id is string => id !== null)
+        ])].filter(Boolean);
 
         if (allRecipeIds.length > 0) {
           const { data: imageData } = await supabase
