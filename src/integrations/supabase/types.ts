@@ -166,28 +166,31 @@ export type Database = {
       meal_plan: {
         Row: {
           created_at: string
+          custom_text: string | null
           id: string
           meal_slot: string
           plan_date: string
-          recipe_id: string
+          recipe_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          custom_text?: string | null
           id?: string
           meal_slot: string
           plan_date: string
-          recipe_id: string
+          recipe_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          custom_text?: string | null
           id?: string
           meal_slot?: string
           plan_date?: string
-          recipe_id?: string
+          recipe_id?: string | null
           updated_at?: string
           user_id?: string
         }

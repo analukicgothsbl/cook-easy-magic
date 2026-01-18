@@ -48,7 +48,8 @@ interface MealPlanEntry {
   id: string;
   plan_date: string;
   meal_slot: string;
-  recipe_id: string;
+  recipe_id: string | null;
+  custom_text?: string | null;
   recipe?: RecipeWithMeta;
 }
 
@@ -84,6 +85,7 @@ export function MealPlannerView() {
   const [modalMealFilter, setModalMealFilter] = useState<MealCategoryFilter>("all");
   const [modalCuisineFilter, setModalCuisineFilter] = useState<CuisineFilter>("all");
   const [modalSearchQuery, setModalSearchQuery] = useState("");
+  const [customMealText, setCustomMealText] = useState("");
 
   // Generate week days
   const weekDays = useMemo(() => {
@@ -96,6 +98,7 @@ export function MealPlannerView() {
       setModalMealFilter("all");
       setModalCuisineFilter("all");
       setModalSearchQuery("");
+      setCustomMealText("");
     }
   }, [addMealModal]);
 
@@ -152,7 +155,7 @@ export function MealPlannerView() {
         const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
         const { data: mealPlanData, error: mealPlanError } = await supabase
           .from('meal_plan')
-          .select('id, plan_date, meal_slot, recipe_id')
+          .select('id, plan_date, meal_slot, recipe_id, custom_text')
           .eq('user_id', user.id)
           .gte('plan_date', format(currentWeekStart, 'yyyy-MM-dd'))
           .lte('plan_date', format(weekEnd, 'yyyy-MM-dd'));
@@ -323,6 +326,43 @@ export function MealPlannerView() {
     }
   };
 
+  // Add custom meal to plan
+  const handleAddCustomMeal = async () => {
+    if (!user || !addMealModal || !customMealText.trim()) return;
+
+    const dateStr = format(addMealModal.date, 'yyyy-MM-dd');
+
+    try {
+      const { data, error } = await supabase
+        .from('meal_plan')
+        .insert({
+          user_id: user.id,
+          plan_date: dateStr,
+          meal_slot: addMealModal.slot,
+          custom_text: customMealText.trim(),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') {
+          toast.error('A meal is already planned for this slot');
+        } else {
+          toast.error('Failed to add custom meal');
+          console.error('Error adding custom meal:', error);
+        }
+        return;
+      }
+
+      setMealPlan(prev => [...prev, data]);
+      setAddMealModal(null);
+      toast.success('Custom meal added to plan!');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to add custom meal');
+    }
+  };
+
   // Remove meal from plan
   const handleRemoveMeal = async (mealId: string) => {
     if (!user) return;
@@ -426,7 +466,7 @@ export function MealPlannerView() {
                       <div className="flex items-center gap-1">
                         <span>{slot.icon}</span>
                         <span className="truncate flex-1">
-                          {meal?.recipe?.title || slot.label}
+                          {meal?.recipe?.title || meal?.custom_text || slot.label}
                         </span>
                       </div>
                     </div>
@@ -527,6 +567,16 @@ export function MealPlannerView() {
                             )}
                           </div>
                         </div>
+                      ) : meal?.custom_text ? (
+                        <div className="space-y-2">
+                          <div className="w-full h-24 bg-gradient-to-br from-muted to-muted/50 rounded-md flex items-center justify-center">
+                            <span className="text-2xl">📝</span>
+                          </div>
+                          <h5 className="font-medium text-foreground text-sm line-clamp-2">
+                            {meal.custom_text}
+                          </h5>
+                          <p className="text-xs text-muted-foreground italic">Custom entry</p>
+                        </div>
                       ) : (
                         <Button
                           variant="outline"
@@ -548,7 +598,7 @@ export function MealPlannerView() {
 
       {/* Add Meal Modal */}
       <Dialog open={!!addMealModal} onOpenChange={() => setAddMealModal(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh]">
+        <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
               Add {MEAL_SLOTS.find(s => s.id === addMealModal?.slot)?.label} for{' '}
@@ -607,7 +657,7 @@ export function MealPlannerView() {
             </div>
           </div>
 
-          <ScrollArea className="h-[55vh] pr-4">
+          <ScrollArea className="h-[50vh] pr-4">
             {favorites.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <ChefHat className="w-12 h-12 text-muted-foreground mb-4" />
@@ -673,6 +723,31 @@ export function MealPlannerView() {
               </div>
             )}
           </ScrollArea>
+
+          {/* Custom Meal Input */}
+          <div className="pt-4 border-t border-border">
+            <p className="text-sm text-muted-foreground mb-2">Or add your own choice:</p>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Enter your choice."
+                value={customMealText}
+                onChange={(e) => setCustomMealText(e.target.value)}
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && customMealText.trim()) {
+                    handleAddCustomMeal();
+                  }
+                }}
+              />
+              <Button 
+                onClick={handleAddCustomMeal}
+                disabled={!customMealText.trim()}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
