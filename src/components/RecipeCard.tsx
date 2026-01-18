@@ -354,7 +354,7 @@ export const RecipeCard = ({
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <motion.button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/auth", { state: { mode: "signup" } })}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="btn-primary flex items-center justify-center gap-2 px-6"
@@ -363,7 +363,7 @@ export const RecipeCard = ({
                 Create free account
               </motion.button>
               <motion.button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/auth", { state: { mode: "login" } })}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="btn-secondary flex items-center justify-center gap-2 px-6"
