@@ -665,10 +665,14 @@ Remember:
     console.log("[images] starting background image generation", { count: createdRecipes.length, requestId });
 
     // Use EdgeRuntime.waitUntil for background processing
+    // Generate all images IN PARALLEL to complete before function timeout
     const generateImagesInBackground = async () => {
       const authToken = authHeader || "";
       
-      for (const recipe of createdRecipes) {
+      console.log("[images] starting parallel image generation for all recipes", { requestId });
+      
+      // Generate all images in parallel using Promise.allSettled
+      const imagePromises = createdRecipes.map(async (recipe) => {
         try {
           console.log("[images] generating image for recipe", { recipeId: recipe.recipe_id, requestId });
           
@@ -690,15 +694,24 @@ Remember:
               status: imageResponse.status,
               requestId,
             });
+            return { recipeId: recipe.recipe_id, success: false };
           } else {
             console.log("[images] image generated successfully", { recipeId: recipe.recipe_id, requestId });
+            return { recipeId: recipe.recipe_id, success: true };
           }
         } catch (imgErr) {
           console.warn("[images] exception generating image", { recipeId: recipe.recipe_id, error: imgErr, requestId });
+          return { recipeId: recipe.recipe_id, success: false };
         }
-      }
-      
-      console.log("[images] background image generation complete", { requestId });
+      });
+
+      const results = await Promise.allSettled(imagePromises);
+      const successCount = results.filter(r => r.status === "fulfilled" && r.value?.success).length;
+      console.log("[images] background image generation complete", { 
+        total: createdRecipes.length, 
+        successful: successCount, 
+        requestId 
+      });
     };
 
     // Start background task without blocking response
