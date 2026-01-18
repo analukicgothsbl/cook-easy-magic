@@ -31,6 +31,7 @@ const corsHeaders = {
 };
 
 interface MealPlanPayload {
+  plan_date: string; // YYYY-MM-DD format - the target date for the meal plan
   time_available: string | null;
   difficulty: string | null;
   cuisine: string | null;
@@ -532,15 +533,16 @@ Remember:
 
     console.log("[openai] usage", { inputTokens, outputTokens, totalTokens, totalCostUsd, requestId });
 
-    // -------------------- Clear existing meal plan for today --------------------
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD UTC
+    // -------------------- Clear existing meal plan for the target date --------------------
+    // Use the plan_date from the request payload (selected day), fallback to server UTC today
+    const targetDate = payload.plan_date || new Date().toISOString().split("T")[0];
 
-    console.log("[db] clearing existing meal plan for today", { userId, today, requestId });
+    console.log("[db] clearing existing meal plan for target date", { userId, targetDate, requestId });
     const { error: deleteError } = await supabase
       .from("meal_plan")
       .delete()
       .eq("user_id", userId)
-      .eq("plan_date", today);
+      .eq("plan_date", targetDate);
 
     if (deleteError) {
       console.error("[db] error deleting existing meal plan", deleteError, { requestId });
@@ -623,7 +625,7 @@ Remember:
         .from("meal_plan")
         .insert({
           user_id: userId,
-          plan_date: today,
+          plan_date: targetDate,
           meal_slot: recipe.meal_slot,
           recipe_id: recipeId,
         });
@@ -707,7 +709,7 @@ Remember:
 
     return new Response(
       JSON.stringify({
-        date: today,
+        date: targetDate,
         recipes: createdRecipes,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

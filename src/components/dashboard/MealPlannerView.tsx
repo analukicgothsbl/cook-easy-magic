@@ -959,6 +959,7 @@ export function MealPlannerView() {
                                 setIsGeneratingMealPlan(true);
                                 try {
                                   const payload = {
+                                    plan_date: format(selectedDay, "yyyy-MM-dd"),
                                     time_available: mealPlanFormData.time_available || null,
                                     difficulty: mealPlanFormData.difficulty || null,
                                     cuisine: mealPlanFormData.cuisine || null,
