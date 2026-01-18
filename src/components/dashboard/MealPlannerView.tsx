@@ -105,9 +105,9 @@ interface Ingredient {
 
 const MEAL_SLOTS = [
   { id: "breakfast", label: "Breakfast", icon: "🌅" },
-  { id: "snack_morning", label: "Snack 1", icon: "🍎" },
+  { id: "snack_morning", label: "Snack", icon: "🍎" },
   { id: "lunch", label: "Lunch", icon: "☀️" },
-  { id: "snack_afternoon", label: "Snack 2", icon: "🍪" },
+  { id: "dessert", label: "Dessert", icon: "🍰" },
   { id: "dinner", label: "Dinner", icon: "🌙" },
 ] as const;
 
