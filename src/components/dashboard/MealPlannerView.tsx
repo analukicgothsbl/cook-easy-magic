@@ -11,7 +11,8 @@ import {
   Loader2,
   Calendar,
   Trash2,
-  Search
+  Search,
+  Eye
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { RecipeDetailModal } from './RecipeDetailModal';
 import type { Recipe } from '@/components/RecipeCard';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -80,6 +82,7 @@ export function MealPlannerView() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [addMealModal, setAddMealModal] = useState<{ date: Date; slot: string } | null>(null);
+  const [viewRecipeModal, setViewRecipeModal] = useState<RecipeWithMeta | null>(null);
   
   // Modal filter states
   const [modalMealFilter, setModalMealFilter] = useState<MealCategoryFilter>("all");
@@ -538,20 +541,21 @@ export function MealPlannerView() {
 
                       {recipe ? (
                         <div className="space-y-2">
-                          {recipeImages[recipe.id] ? (
-                            <img
-                              src={recipeImages[recipe.id]}
-                              alt={recipe.title}
-                              className="w-full h-24 object-cover rounded-md"
-                            />
-                          ) : (
-                            <div className="w-full h-24 bg-gradient-to-br from-destructive/10 to-primary/10 rounded-md flex items-center justify-center">
-                              <ChefHat className="w-8 h-8 text-primary/40" />
-                            </div>
-                          )}
-                          <h5 className="font-medium text-foreground text-sm line-clamp-2">
+                          <h5 className="font-bold text-foreground text-sm line-clamp-2">
                             {recipe.title}
                           </h5>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewRecipeModal({ ...recipe, image_url: recipeImages[recipe.id] });
+                            }}
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View recipe
+                          </Button>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             {recipe.time_minutes && (
                               <span className="flex items-center gap-1">
@@ -569,18 +573,15 @@ export function MealPlannerView() {
                         </div>
                       ) : meal?.custom_text ? (
                         <div className="space-y-2">
-                          <div className="w-full h-24 bg-gradient-to-br from-muted to-muted/50 rounded-md flex items-center justify-center">
-                            <span className="text-2xl">📝</span>
-                          </div>
-                          <h5 className="font-medium text-foreground text-sm line-clamp-2">
+                          <h5 className="font-bold text-foreground text-sm line-clamp-2">
                             {meal.custom_text}
                           </h5>
                           <p className="text-xs text-muted-foreground italic">Custom entry</p>
                         </div>
                       ) : (
                         <Button
-                          variant="outline"
-                          className="w-full h-24 border-dashed"
+                          className="w-full h-20 border-dashed border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary"
+                          variant="ghost"
                           onClick={() => setAddMealModal({ date: selectedDay, slot: slot.id })}
                         >
                           <Plus className="w-5 h-5 mr-2" />
@@ -750,6 +751,12 @@ export function MealPlannerView() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Recipe Detail Modal */}
+      <RecipeDetailModal 
+        recipe={viewRecipeModal} 
+        onClose={() => setViewRecipeModal(null)} 
+      />
     </div>
   );
 }
