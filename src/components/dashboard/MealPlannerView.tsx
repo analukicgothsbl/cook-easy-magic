@@ -13,6 +13,7 @@ import {
   Trash2,
   Search,
   Eye,
+  Sparkles,
 } from "lucide-react";
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +27,45 @@ import { Input } from "@/components/ui/input";
 import { RecipeDetailModal } from "./RecipeDetailModal";
 import type { Recipe } from "@/components/RecipeCard";
 import type { Json } from "@/integrations/supabase/types";
+
+// Options for meal plan form
+const cuisineOptions = [
+  { id: 'any_surprise_me', label: 'Any – Surprise me' },
+  { id: 'home_style_traditional', label: 'Home-style / Traditional' },
+  { id: 'italian', label: 'Italian' },
+  { id: 'mediterranean', label: 'Mediterranean' },
+  { id: 'mexican', label: 'Mexican' },
+  { id: 'asian', label: 'Asian' },
+  { id: 'balkan', label: 'Balkan' },
+  { id: 'healthy_light', label: 'Healthy – Light' },
+  { id: 'comfort_food', label: 'Comfort food' },
+];
+
+const difficultyOptions = [
+  { id: 'easy', label: 'Easy' },
+  { id: 'medium', label: 'Medium' },
+  { id: 'hard', label: 'Hard' },
+];
+
+const budgetOptions = [
+  { id: 'cheap', label: 'Cheap' },
+  { id: 'normal', label: 'Normal' },
+  { id: 'doesnt_matter', label: "Doesn't matter" },
+];
+
+const kidsFriendlyOptions = [
+  { id: 'yes', label: 'Yes', value: true },
+  { id: 'no', label: 'No', value: false },
+];
+
+interface UserOptions {
+  time_available?: string | null;
+  difficulty?: string | null;
+  cuisine?: string | null;
+  servings?: number | null;
+  budget_level?: string | null;
+  kids_friendly?: boolean | null;
+}
 
 type MealCategoryFilter = "all" | "breakfast" | "lunch" | "dinner" | "dessert" | "snack";
 type CuisineFilter =
@@ -88,6 +128,19 @@ export function MealPlannerView() {
   const [modalSearchQuery, setModalSearchQuery] = useState("");
   const [customMealText, setCustomMealText] = useState("");
 
+  // Full-day meal plan form states
+  const [showMealPlanForm, setShowMealPlanForm] = useState(false);
+  const [userOptions, setUserOptions] = useState<UserOptions | null>(null);
+  const [mealPlanFormData, setMealPlanFormData] = useState({
+    time_available: '',
+    cuisine: '',
+    difficulty: '',
+    servings: 2,
+    budget_level: '',
+    kids_friendly: null as boolean | null,
+  });
+  const [isLoadingUserOptions, setIsLoadingUserOptions] = useState(false);
+
   // Generate week days
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
@@ -102,6 +155,70 @@ export function MealPlannerView() {
       setCustomMealText("");
     }
   }, [addMealModal]);
+
+  // Fetch user options when meal plan form is shown
+  useEffect(() => {
+    const fetchUserOptions = async () => {
+      if (!showMealPlanForm || !user) return;
+      
+      setIsLoadingUserOptions(true);
+      try {
+        const { data, error } = await supabase
+          .from("user_options")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        
+        if (error) {
+          console.error("Error fetching user options:", error);
+        } else if (data) {
+          setUserOptions(data);
+          // Pre-fill form with user options
+          setMealPlanFormData({
+            time_available: data.time_available || '',
+            cuisine: data.cuisine || '',
+            difficulty: data.difficulty || '',
+            servings: data.servings || 2,
+            budget_level: data.budget_level || '',
+            kids_friendly: data.kids_friendly ?? null,
+          });
+        } else {
+          // No user options, reset form
+          setUserOptions(null);
+          setMealPlanFormData({
+            time_available: '',
+            cuisine: '',
+            difficulty: '',
+            servings: 2,
+            budget_level: '',
+            kids_friendly: null,
+          });
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      } finally {
+        setIsLoadingUserOptions(false);
+      }
+    };
+
+    fetchUserOptions();
+  }, [showMealPlanForm, user]);
+
+  // Reset form when closing
+  useEffect(() => {
+    if (!selectedDay) {
+      setShowMealPlanForm(false);
+    }
+  }, [selectedDay]);
+
+  // Check if meal plan form is valid
+  const isMealPlanFormValid = 
+    mealPlanFormData.time_available &&
+    mealPlanFormData.cuisine &&
+    mealPlanFormData.difficulty &&
+    mealPlanFormData.servings > 0 &&
+    mealPlanFormData.budget_level &&
+    mealPlanFormData.kids_friendly !== null;
 
   // Filter favorites for modal
   const filteredFavorites = useMemo(() => {
@@ -501,15 +618,213 @@ export function MealPlannerView() {
                 <div className="flex items-center gap-2">
                   <Button 
                     className="rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/90"
+                    onClick={() => setShowMealPlanForm(!showMealPlanForm)}
                   >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Create Full-Day Meal Plan
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Suggest Full-Day Meal Plan
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => setSelectedDay(null)}>
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
+
+              {/* Full-Day Meal Plan Options Form */}
+              <AnimatePresence>
+                {showMealPlanForm && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden mb-6"
+                  >
+                    <div className="bg-secondary/50 rounded-xl p-6 border border-border">
+                      {isLoadingUserOptions ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="text-center mb-4">
+                            <h4 className="text-lg font-semibold text-foreground">Customize Your Meal Plan</h4>
+                            <p className="text-sm text-muted-foreground">Set your preferences for AI-generated meal suggestions</p>
+                          </div>
+
+                          {/* Time Available */}
+                          <div>
+                            <label className="block text-sm font-semibold text-foreground mb-3">
+                              How much time do you have? <span className="text-primary">*</span>
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                              <motion.button
+                                type="button"
+                                onClick={() => setMealPlanFormData(prev => ({ ...prev, time_available: 'minimum' }))}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className={`flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all duration-200 ${
+                                  mealPlanFormData.time_available === 'minimum'
+                                    ? 'bg-primary text-primary-foreground shadow-md'
+                                    : 'bg-card text-foreground border-2 border-border hover:border-primary/40'
+                                }`}
+                              >
+                                <Clock className="w-4 h-4" />
+                                Minimum time
+                              </motion.button>
+                              <motion.button
+                                type="button"
+                                onClick={() => setMealPlanFormData(prev => ({ ...prev, time_available: 'enough' }))}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className={`flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all duration-200 ${
+                                  mealPlanFormData.time_available === 'enough'
+                                    ? 'bg-primary text-primary-foreground shadow-md'
+                                    : 'bg-card text-foreground border-2 border-border hover:border-primary/40'
+                                }`}
+                              >
+                                <Clock className="w-4 h-4" />
+                                Enough time
+                              </motion.button>
+                            </div>
+                          </div>
+
+                          {/* Cuisine */}
+                          <div>
+                            <label className="block text-sm font-semibold text-foreground mb-3">
+                              Cuisine <span className="text-primary">*</span>
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {cuisineOptions.map((option) => (
+                                <motion.button
+                                  key={option.id}
+                                  type="button"
+                                  onClick={() => setMealPlanFormData(prev => ({ ...prev, cuisine: option.id }))}
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  className={`pill-button ${
+                                    mealPlanFormData.cuisine === option.id
+                                      ? 'pill-button-active'
+                                      : 'pill-button-inactive'
+                                  }`}
+                                >
+                                  {option.label}
+                                </motion.button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Difficulty */}
+                          <div>
+                            <label className="block text-sm font-semibold text-foreground mb-3">
+                              Difficulty <span className="text-primary">*</span>
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {difficultyOptions.map((option) => (
+                                <motion.button
+                                  key={option.id}
+                                  type="button"
+                                  onClick={() => setMealPlanFormData(prev => ({ ...prev, difficulty: option.id }))}
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  className={`pill-button ${
+                                    mealPlanFormData.difficulty === option.id
+                                      ? 'pill-button-active'
+                                      : 'pill-button-inactive'
+                                  }`}
+                                >
+                                  {option.label}
+                                </motion.button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Servings */}
+                          <div>
+                            <label className="block text-sm font-semibold text-foreground mb-3">
+                              Servings <span className="text-primary">*</span>
+                            </label>
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="number"
+                                min={1}
+                                max={20}
+                                value={mealPlanFormData.servings}
+                                onChange={(e) => setMealPlanFormData(prev => ({ ...prev, servings: parseInt(e.target.value) || 2 }))}
+                                className="w-24 px-4 py-3 rounded-xl border-2 text-center font-medium transition-all duration-200 bg-card border-border focus:border-primary focus:outline-none"
+                              />
+                              <span className="text-muted-foreground">people</span>
+                            </div>
+                          </div>
+
+                          {/* Budget */}
+                          <div>
+                            <label className="block text-sm font-semibold text-foreground mb-3">
+                              Budget <span className="text-primary">*</span>
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {budgetOptions.map((option) => (
+                                <motion.button
+                                  key={option.id}
+                                  type="button"
+                                  onClick={() => setMealPlanFormData(prev => ({ ...prev, budget_level: option.id }))}
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  className={`pill-button ${
+                                    mealPlanFormData.budget_level === option.id
+                                      ? 'pill-button-active'
+                                      : 'pill-button-inactive'
+                                  }`}
+                                >
+                                  {option.label}
+                                </motion.button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Kids Friendly */}
+                          <div>
+                            <label className="block text-sm font-semibold text-foreground mb-3">
+                              Kids Friendly <span className="text-primary">*</span>
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {kidsFriendlyOptions.map((option) => (
+                                <motion.button
+                                  key={option.id}
+                                  type="button"
+                                  onClick={() => setMealPlanFormData(prev => ({ ...prev, kids_friendly: option.value }))}
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  className={`pill-button ${
+                                    mealPlanFormData.kids_friendly === option.value
+                                      ? 'pill-button-active'
+                                      : 'pill-button-inactive'
+                                  }`}
+                                >
+                                  {option.label}
+                                </motion.button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Submit Button */}
+                          <div className="pt-4 border-t border-border">
+                            <Button
+                              className="w-full rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 py-6"
+                              disabled={!isMealPlanFormValid}
+                              onClick={() => {
+                                // TODO: Call AI function to generate meal plan
+                                toast.info("AI meal plan generation coming soon!");
+                              }}
+                            >
+                              <Sparkles className="w-5 h-5 mr-2" />
+                              Create Full-Day Meal Plan
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {MEAL_SLOTS.map((slot) => {
