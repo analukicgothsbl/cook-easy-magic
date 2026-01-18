@@ -231,7 +231,7 @@ export function MealPlannerView() {
     const pollInterval = 2000; // Poll every 2 seconds
 
     const fetchImages = async () => {
-      const idsToCheck = pendingImageRecipeIds.filter(id => !recipeImages[id]);
+      const idsToCheck = pendingImageRecipeIds.filter((id) => !recipeImages[id]);
       if (idsToCheck.length === 0) {
         if (isMounted) {
           setPendingImageRecipeIds([]);
@@ -261,9 +261,9 @@ export function MealPlannerView() {
           });
 
           if (Object.keys(newImages).length > 0) {
-            setRecipeImages(prev => ({ ...prev, ...newImages }));
+            setRecipeImages((prev) => ({ ...prev, ...newImages }));
             // Update viewRecipeModal if it's currently showing one of these recipes
-            setViewRecipeModal(prev => {
+            setViewRecipeModal((prev) => {
               if (prev && foundIds.includes(prev.id)) {
                 return { ...prev, image_url: newImages[prev.id] };
               }
@@ -272,7 +272,7 @@ export function MealPlannerView() {
           }
 
           // Check if all pending images are found
-          const remainingIds = idsToCheck.filter(id => !newImages[id]);
+          const remainingIds = idsToCheck.filter((id) => !newImages[id]);
           if (remainingIds.length === 0) {
             setPendingImageRecipeIds([]);
             return true;
@@ -1059,7 +1059,7 @@ export function MealPlannerView() {
                                       }));
 
                                       setMealPlan(formattedMealPlan);
-                                      
+
                                       // Start polling for images of new recipes
                                       setPendingImageRecipeIds(recipeIds);
                                     }
@@ -1125,7 +1125,7 @@ export function MealPlannerView() {
                       <div className="flex-1 flex flex-col justify-between">
                         {recipe ? (
                           <>
-                            <div className="w-full h-20 rounded-lg overflow-hidden mb-2 relative">
+                            <div className="w-full h-40 rounded-lg overflow-hidden mb-2 relative">
                               {recipeImages[recipe.id] ? (
                                 <img
                                   src={recipeImages[recipe.id]}
