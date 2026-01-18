@@ -140,6 +140,7 @@ export function MealPlannerView() {
     kids_friendly: null as boolean | null,
   });
   const [isLoadingUserOptions, setIsLoadingUserOptions] = useState(false);
+  const [isGeneratingMealPlan, setIsGeneratingMealPlan] = useState(false);
 
   // Generate week days
   const weekDays = useMemo(() => {
@@ -809,14 +810,111 @@ export function MealPlannerView() {
                           <div className="pt-4 border-t border-border">
                             <Button
                               className="w-full rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 py-6"
-                              disabled={!isMealPlanFormValid}
-                              onClick={() => {
-                                // TODO: Call AI function to generate meal plan
-                                toast.info("AI meal plan generation coming soon!");
+                              disabled={!isMealPlanFormValid || isGeneratingMealPlan}
+                              onClick={async () => {
+                                if (!selectedDay || !user) return;
+                                
+                                setIsGeneratingMealPlan(true);
+                                try {
+                                  const payload = {
+                                    time_available: mealPlanFormData.time_available || null,
+                                    difficulty: mealPlanFormData.difficulty || null,
+                                    cuisine: mealPlanFormData.cuisine || null,
+                                    servings: mealPlanFormData.servings || null,
+                                    budget_level: mealPlanFormData.budget_level || null,
+                                    kids_friendly: mealPlanFormData.kids_friendly,
+                                  };
+                                  
+                                  const { data, error } = await supabase.functions.invoke("generate-meal-planner-day", {
+                                    body: payload,
+                                  });
+                                  
+                                  if (error) {
+                                    console.error("Error generating meal plan:", error);
+                                    toast.error("Failed to generate meal plan. Please try again.");
+                                    return;
+                                  }
+                                  
+                                  if (data?.error === "INSUFFICIENT_CREDITS") {
+                                    toast.error(`Not enough credits. You need at least ${data.min_required} credits.`);
+                                    return;
+                                  }
+                                  
+                                  if (data?.error) {
+                                    toast.error(data.error);
+                                    return;
+                                  }
+                                  
+                                  // Success - refresh meal plan data
+                                  toast.success("Full-day meal plan created! Images are being generated in the background.");
+                                  setShowMealPlanForm(false);
+                                  
+                                  // Refresh the meal plan data
+                                  const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
+                                  const { data: mealPlanData } = await supabase
+                                    .from("meal_plan")
+                                    .select("id, plan_date, meal_slot, recipe_id, custom_text")
+                                    .eq("user_id", user.id)
+                                    .gte("plan_date", format(currentWeekStart, "yyyy-MM-dd"))
+                                    .lte("plan_date", format(weekEnd, "yyyy-MM-dd"));
+                                  
+                                  if (mealPlanData) {
+                                    // Fetch the new recipes
+                                    const recipeIds = mealPlanData.map(m => m.recipe_id).filter((id): id is string => id !== null);
+                                    if (recipeIds.length > 0) {
+                                      const { data: recipesData } = await supabase
+                                        .from("recipe")
+                                        .select("*")
+                                        .in("id", recipeIds);
+                                      
+                                      const recipeMap = new Map(
+                                        (recipesData || []).map(r => [r.id, {
+                                          id: r.id,
+                                          title: r.title,
+                                          description_short: r.description_short || undefined,
+                                          description_long: r.description_long || undefined,
+                                          meal_category: r.meal_category || undefined,
+                                          time_minutes: r.time_minutes || undefined,
+                                          cuisine: r.cuisine || undefined,
+                                          servings: r.servings || undefined,
+                                          difficulty: r.difficulty || undefined,
+                                          budget_level: r.budget_level || undefined,
+                                          kids_friendly: r.kids_friendly || undefined,
+                                          ingredients: (r.ingredients || []) as (string | Ingredient)[],
+                                          instructions: r.instructions ? [r.instructions] : [],
+                                          tips: r.tips || undefined,
+                                          nutrition_estimate: r.nutrition_estimate as unknown as Recipe["nutrition_estimate"],
+                                          created_at: r.created_at,
+                                        } as RecipeWithMeta])
+                                      );
+                                      
+                                      const formattedMealPlan: MealPlanEntry[] = mealPlanData.map((entry) => ({
+                                        ...entry,
+                                        recipe: recipeMap.get(entry.recipe_id || "") as RecipeWithMeta | undefined,
+                                      }));
+                                      
+                                      setMealPlan(formattedMealPlan);
+                                    }
+                                  }
+                                } catch (err) {
+                                  console.error("Error:", err);
+                                  toast.error("An error occurred. Please try again.");
+                                } finally {
+                                  setIsGeneratingMealPlan(false);
+                                }
                               }}
                             >
-                              <Sparkles className="w-5 h-5 mr-2" />
-                              Create Full-Day Meal Plan
+                              {isGeneratingMealPlan ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                  Generating...
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-5 h-5 mr-2" />
+                                  Create Full-Day Meal Plan
+                                </>
+                              )}
                             </Button>
                           </div>
                         </div>

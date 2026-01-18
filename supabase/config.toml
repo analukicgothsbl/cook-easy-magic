@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.generate-recipe-image]
 verify_jwt = false
 
+[functions.generate-meal-planner-day]
+verify_jwt = false
+
 [functions.paypal-create-order]
 verify_jwt = false
 
