@@ -237,7 +237,6 @@ export const RecipeCard = ({
         }
 
         if (data?.image_url && isMounted) {
-          console.log("[RecipeCard] Image found for recipe:", recipeId);
           setRecipeImageUrl(data.image_url);
           setIsLoadingImage(false);
           return true; // Image found
