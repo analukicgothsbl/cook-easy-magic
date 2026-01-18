@@ -621,7 +621,7 @@ export function MealPlannerView() {
             exit={{ opacity: 0, height: 0 }}
             className="mt-6 overflow-hidden"
           >
-            <div className="max-w-4xl mx-auto card-warm p-6">
+            <div className="card-warm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-foreground">{format(selectedDay, "EEEE, MMMM d")}</h3>
                 <div className="flex items-center gap-2">
