@@ -97,7 +97,7 @@ const RecipeSkeleton = () => {
           className="card-warm overflow-hidden"
         >
           {/* Animated image placeholder */}
-          <div className="h-48 sm:h-64 bg-gradient-to-br from-primary/20 via-accent to-secondary/30 relative overflow-hidden">
+          <div className="h-80 sm:h-96 bg-gradient-to-br from-primary/20 via-accent to-secondary/30 relative overflow-hidden">
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
               animate={{ x: ["-100%", "100%"] }}
