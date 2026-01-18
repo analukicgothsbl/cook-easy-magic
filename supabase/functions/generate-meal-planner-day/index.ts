@@ -605,6 +605,19 @@ Remember:
         // Continue anyway
       }
 
+      // Add to favorites
+      const { error: favError } = await supabase
+        .from("recipe_favorites")
+        .upsert(
+          { user_id: userId, recipe_id: recipeId, created_at: new Date().toISOString() },
+          { onConflict: "user_id,recipe_id" }
+        );
+
+      if (favError) {
+        console.error("[recipe_favorites] failed", favError, { requestId });
+        // Continue anyway
+      }
+
       // Insert meal plan entry
       const { error: mealPlanError } = await supabase
         .from("meal_plan")
