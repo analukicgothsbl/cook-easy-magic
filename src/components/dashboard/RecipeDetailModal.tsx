@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, ChefHat, X, Flame, Download, Copy, Check } from 'lucide-react';
+import { Clock, Users, ChefHat, X, Flame, Download, Copy, Check, ImageIcon, Loader2 } from 'lucide-react';
 import type { Recipe } from '@/components/RecipeCard';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { supabase } from '@/integrations/supabase/client';
 interface RecipeWithMeta extends Recipe {
   id: string;
   created_at: string;
@@ -22,6 +23,89 @@ interface RecipeDetailModalProps {
 }
 
 export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailModalProps) {
+  const [copied, setCopied] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
+
+  // Poll for image if recipe doesn't have one
+  useEffect(() => {
+    if (!recipe?.id) {
+      setImageUrl(null);
+      setIsLoadingImage(false);
+      return;
+    }
+
+    // If recipe already has image_url, use it
+    if (recipe.image_url) {
+      setImageUrl(recipe.image_url);
+      setIsLoadingImage(false);
+      return;
+    }
+
+    let isMounted = true;
+    let pollCount = 0;
+    const maxPolls = 60; // Poll for up to 60 seconds
+    const pollInterval = 1000; // Poll every second
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const fetchImage = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("recipe_image")
+          .select("image_url")
+          .eq("recipe_id", recipe.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error fetching recipe image:", error);
+          return false;
+        }
+
+        if (data?.image_url && isMounted) {
+          setImageUrl(data.image_url);
+          setIsLoadingImage(false);
+          return true;
+        }
+        return false;
+      } catch (err) {
+        console.error("Error fetching recipe image:", err);
+        return false;
+      }
+    };
+
+    const pollForImage = async () => {
+      setIsLoadingImage(true);
+      setImageUrl(null);
+
+      const found = await fetchImage();
+      if (found) return;
+
+      intervalId = setInterval(async () => {
+        pollCount++;
+        const found = await fetchImage();
+
+        if (found || pollCount >= maxPolls) {
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
+          if (!found && isMounted) {
+            setIsLoadingImage(false);
+          }
+        }
+      }, pollInterval);
+    };
+
+    pollForImage();
+
+    return () => {
+      isMounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [recipe?.id, recipe?.image_url]);
+
   const formatIngredient = (ing: string | Ingredient): string => {
     if (typeof ing === 'string') return ing;
     return `${ing.quantity} ${ing.unit} ${ing.name}`.trim();
@@ -65,8 +149,6 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
   };
 
   const instructions = getInstructions();
-
-  const [copied, setCopied] = useState(false);
 
   const getRecipeTextContent = () => {
     if (!recipe) return '';
@@ -185,6 +267,31 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
             >
               <X className="w-5 h-5" />
             </button>
+          </div>
+
+          {/* Recipe Image */}
+          <div className="relative h-48 sm:h-64 overflow-hidden">
+            {imageUrl ? (
+              <img src={imageUrl} alt={recipe.title} className="w-full h-full object-cover" />
+            ) : isLoadingImage ? (
+              <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent to-secondary/30 flex items-center justify-center">
+                <div className="text-center">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    className="mb-3"
+                  >
+                    <ImageIcon className="w-10 h-10 text-primary" />
+                  </motion.div>
+                  <p className="text-sm font-medium text-foreground">Generating image...</p>
+                  <Loader2 className="w-4 h-4 animate-spin mx-auto mt-2 text-muted-foreground" />
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-primary/10 to-secondary/20 flex items-center justify-center">
+                <ChefHat className="w-16 h-16 text-primary/40" />
+              </div>
+            )}
           </div>
 
           {/* Content */}

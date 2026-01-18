@@ -145,6 +145,7 @@ export function MealPlannerView() {
   const [isLoadingUserOptions, setIsLoadingUserOptions] = useState(false);
   const [isGeneratingMealPlan, setIsGeneratingMealPlan] = useState(false);
   const [showCreditsError, setShowCreditsError] = useState(false);
+  const [pendingImageRecipeIds, setPendingImageRecipeIds] = useState<string[]>([]);
 
   // Generate week days
   const weekDays = useMemo(() => {
@@ -219,6 +220,99 @@ export function MealPlannerView() {
       setShowMealPlanForm(false);
     }
   }, [selectedDay]);
+
+  // Poll for images of pending recipes
+  useEffect(() => {
+    if (pendingImageRecipeIds.length === 0) return;
+
+    let isMounted = true;
+    let pollCount = 0;
+    const maxPolls = 60; // Poll for up to 60 seconds
+    const pollInterval = 2000; // Poll every 2 seconds
+
+    const fetchImages = async () => {
+      const idsToCheck = pendingImageRecipeIds.filter(id => !recipeImages[id]);
+      if (idsToCheck.length === 0) {
+        if (isMounted) {
+          setPendingImageRecipeIds([]);
+        }
+        return true; // All images found
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("recipe_image")
+          .select("recipe_id, image_url")
+          .in("recipe_id", idsToCheck);
+
+        if (error) {
+          console.error("Error fetching recipe images:", error);
+          return false;
+        }
+
+        if (data && data.length > 0 && isMounted) {
+          const newImages: Record<string, string> = {};
+          const foundIds: string[] = [];
+          data.forEach((img) => {
+            if (img.image_url) {
+              newImages[img.recipe_id] = img.image_url;
+              foundIds.push(img.recipe_id);
+            }
+          });
+
+          if (Object.keys(newImages).length > 0) {
+            setRecipeImages(prev => ({ ...prev, ...newImages }));
+            // Update viewRecipeModal if it's currently showing one of these recipes
+            setViewRecipeModal(prev => {
+              if (prev && foundIds.includes(prev.id)) {
+                return { ...prev, image_url: newImages[prev.id] };
+              }
+              return prev;
+            });
+          }
+
+          // Check if all pending images are found
+          const remainingIds = idsToCheck.filter(id => !newImages[id]);
+          if (remainingIds.length === 0) {
+            setPendingImageRecipeIds([]);
+            return true;
+          }
+        }
+        return false;
+      } catch (err) {
+        console.error("Error fetching recipe images:", err);
+        return false;
+      }
+    };
+
+    const pollForImages = async () => {
+      // First immediate check
+      const allFound = await fetchImages();
+      if (allFound) return;
+
+      // Start polling
+      const intervalId = setInterval(async () => {
+        pollCount++;
+        const allFound = await fetchImages();
+
+        if (allFound || pollCount >= maxPolls) {
+          clearInterval(intervalId);
+          if (!allFound && isMounted) {
+            console.log("[MealPlanner] Stopped polling after", pollCount, "attempts");
+            setPendingImageRecipeIds([]);
+          }
+        }
+      }, pollInterval);
+
+      return () => clearInterval(intervalId);
+    };
+
+    pollForImages();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pendingImageRecipeIds, recipeImages]);
 
   // Check if meal plan form is valid
   const isMealPlanFormValid =
@@ -965,6 +1059,9 @@ export function MealPlannerView() {
                                       }));
 
                                       setMealPlan(formattedMealPlan);
+                                      
+                                      // Start polling for images of new recipes
+                                      setPendingImageRecipeIds(recipeIds);
                                     }
                                   }
                                 } catch (err) {
