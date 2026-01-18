@@ -14,7 +14,9 @@ import {
   Search,
   Eye,
   Sparkles,
+  CreditCard,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -113,6 +115,7 @@ const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function MealPlannerView() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [mealPlan, setMealPlan] = useState<MealPlanEntry[]>([]);
   const [favorites, setFavorites] = useState<RecipeWithMeta[]>([]);
@@ -141,6 +144,7 @@ export function MealPlannerView() {
   });
   const [isLoadingUserOptions, setIsLoadingUserOptions] = useState(false);
   const [isGeneratingMealPlan, setIsGeneratingMealPlan] = useState(false);
+  const [showCreditsError, setShowCreditsError] = useState(false);
 
   // Generate week days
   const weekDays = useMemo(() => {
@@ -156,6 +160,14 @@ export function MealPlannerView() {
       setCustomMealText("");
     }
   }, [addMealModal]);
+
+  // Reset credits error when selectedDay modal closes
+  useEffect(() => {
+    if (!selectedDay) {
+      setShowCreditsError(false);
+      setShowMealPlanForm(false);
+    }
+  }, [selectedDay]);
 
   // Fetch user options when meal plan form is shown
   useEffect(() => {
@@ -630,9 +642,45 @@ export function MealPlannerView() {
                 </div>
               </div>
 
+              {/* Out of Credits Error Card */}
+              <AnimatePresence>
+                {showCreditsError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-6"
+                  >
+                    <div className="bg-secondary/50 rounded-xl p-8 border border-border text-center">
+                      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CreditCard className="w-8 h-8 text-primary" />
+                      </div>
+                      <h3 className="text-xl font-bold text-foreground mb-2">
+                        Out of Credits
+                      </h3>
+                      <p className="text-muted-foreground mb-6">
+                        You don't have enough credits. Please add more credits.
+                      </p>
+                      <motion.button
+                        onClick={() => {
+                          setSelectedDay(null);
+                          navigate('/dashboard', { state: { view: 'settings', settingsTab: 'credits' } });
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium hover:bg-primary/90 transition-colors"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Buy credits
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Full-Day Meal Plan Options Form */}
               <AnimatePresence>
-                {showMealPlanForm && (
+                {showMealPlanForm && !showCreditsError && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
@@ -835,7 +883,8 @@ export function MealPlannerView() {
                                     try {
                                       const errorContext = JSON.parse(error.context?.body || "{}");
                                       if (errorContext.error === "INSUFFICIENT_CREDITS") {
-                                        toast.error(`Not enough credits. You need at least ${errorContext.min_required} credits (you have ${errorContext.available.toFixed(2)}).`);
+                                        setShowCreditsError(true);
+                                        setShowMealPlanForm(false);
                                         return;
                                       }
                                     } catch {
@@ -846,7 +895,8 @@ export function MealPlannerView() {
                                   }
                                   
                                   if (data?.error === "INSUFFICIENT_CREDITS") {
-                                    toast.error(`Not enough credits. You need at least ${data.min_required} credits.`);
+                                    setShowCreditsError(true);
+                                    setShowMealPlanForm(false);
                                     return;
                                   }
                                   
