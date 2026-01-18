@@ -1,10 +1,25 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Clock, Users, RefreshCw, Heart, Lock, Lightbulb, ChefHat, Flame, UserPlus, LogIn, Check, Loader2, ImageIcon, CreditCard } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import foodPasta from '@/assets/food-pasta.jpg';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  Clock,
+  Users,
+  RefreshCw,
+  Heart,
+  Lock,
+  Lightbulb,
+  ChefHat,
+  Flame,
+  UserPlus,
+  LogIn,
+  Check,
+  Loader2,
+  ImageIcon,
+  CreditCard,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import foodPasta from "@/assets/food-pasta.jpg";
 
 interface Ingredient {
   name: string;
@@ -76,26 +91,23 @@ const RecipeSkeleton = () => {
   return (
     <section className="section-padding bg-background">
       <div className="container-narrow">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="card-warm overflow-hidden"
         >
           {/* Animated image placeholder */}
           <div className="h-48 sm:h-64 bg-gradient-to-br from-primary/20 via-accent to-secondary/30 relative overflow-hidden">
-            <motion.div 
+            <motion.div
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-              animate={{ x: ['-100%', '100%'] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
             />
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              >
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
                 <ChefHat className="w-12 h-12 text-primary" />
               </motion.div>
-              <motion.p 
+              <motion.p
                 key={messageIndex}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -108,28 +120,28 @@ const RecipeSkeleton = () => {
           </div>
           <div className="p-6 sm:p-8 space-y-6">
             <div className="space-y-3">
-              <motion.div 
+              <motion.div
                 className="h-8 bg-muted rounded w-3/4"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               />
-              <motion.div 
+              <motion.div
                 className="h-4 bg-muted rounded w-1/2"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
               />
               <div className="flex gap-3">
-                <motion.div 
+                <motion.div
                   className="h-6 bg-muted rounded-full w-20"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
                 />
-                <motion.div 
+                <motion.div
                   className="h-6 bg-muted rounded w-24"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
                 />
-                <motion.div 
+                <motion.div
                   className="h-6 bg-muted rounded w-24"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
@@ -137,15 +149,15 @@ const RecipeSkeleton = () => {
               </div>
             </div>
             <div className="space-y-3">
-              <motion.div 
+              <motion.div
                 className="h-6 bg-muted rounded w-32"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               />
               <div className="grid gap-2 sm:grid-cols-2">
                 {[...Array(6)].map((_, i) => (
-                  <motion.div 
-                    key={i} 
+                  <motion.div
+                    key={i}
                     className="h-5 bg-muted rounded w-full"
                     animate={{ opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
@@ -154,19 +166,19 @@ const RecipeSkeleton = () => {
               </div>
             </div>
             <div className="space-y-3">
-              <motion.div 
+              <motion.div
                 className="h-6 bg-muted rounded w-32"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               />
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="flex gap-4">
-                  <motion.div 
+                  <motion.div
                     className="h-8 w-8 bg-muted rounded-full flex-shrink-0"
                     animate={{ opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.15 }}
                   />
-                  <motion.div 
+                  <motion.div
                     className="h-5 bg-muted rounded flex-1"
                     animate={{ opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.15 + 0.1 }}
@@ -181,15 +193,15 @@ const RecipeSkeleton = () => {
   );
 };
 
-export const RecipeCard = ({ 
-  recipe, 
+export const RecipeCard = ({
+  recipe,
   recipeId,
-  onGenerateAnother, 
-  isLoading = false, 
-  errorMsg = '', 
+  onGenerateAnother,
+  isLoading = false,
+  errorMsg = "",
   onRetry,
   isLoggedIn = false,
-  isGuestBlocked = false
+  isGuestBlocked = false,
 }: RecipeCardProps) => {
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
@@ -213,13 +225,13 @@ export const RecipeCard = ({
     const fetchImage = async () => {
       try {
         const { data, error } = await supabase
-          .from('recipe_image')
-          .select('image_url')
-          .eq('recipe_id', recipeId)
+          .from("recipe_image")
+          .select("image_url")
+          .eq("recipe_id", recipeId)
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching recipe image:', error);
+          console.error("Error fetching recipe image:", error);
           return false;
         }
 
@@ -230,14 +242,14 @@ export const RecipeCard = ({
         }
         return false; // Keep polling
       } catch (err) {
-        console.error('Error fetching recipe image:', err);
+        console.error("Error fetching recipe image:", err);
         return false;
       }
     };
 
     const pollForImage = async () => {
       setIsLoadingImage(true);
-      
+
       // First immediate check
       const found = await fetchImage();
       if (found) return;
@@ -246,7 +258,7 @@ export const RecipeCard = ({
       const interval = setInterval(async () => {
         pollCount++;
         const found = await fetchImage();
-        
+
         if (found || pollCount >= maxPolls) {
           clearInterval(interval);
           if (!found && isMounted) {
@@ -272,39 +284,39 @@ export const RecipeCard = ({
     }
 
     if (!recipeId) {
-      toast.error('Recipe ID not found');
+      toast.error("Recipe ID not found");
       return;
     }
 
     setIsSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Please log in to save recipes');
+        toast.error("Please log in to save recipes");
         return;
       }
 
-      const { error } = await supabase
-        .from('recipe_favorites')
-        .insert({
-          user_id: user.id,
-          recipe_id: recipeId,
-        });
+      const { error } = await supabase.from("recipe_favorites").insert({
+        user_id: user.id,
+        recipe_id: recipeId,
+      });
 
       if (error) {
-        if (error.code === '23505') {
-          toast.info('Recipe already saved!');
+        if (error.code === "23505") {
+          toast.info("Recipe already saved!");
           setIsSaved(true);
         } else {
           throw error;
         }
       } else {
         setIsSaved(true);
-        toast.success('Recipe saved to your cookbook!');
+        toast.success("Recipe saved to your cookbook!");
       }
     } catch (err) {
-      console.error('Error saving recipe:', err);
-      toast.error('Failed to save recipe');
+      console.error("Error saving recipe:", err);
+      toast.error("Failed to save recipe");
     } finally {
       setIsSaving(false);
     }
@@ -323,21 +335,19 @@ export const RecipeCard = ({
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             className="card-warm p-8 text-center"
           >
             <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-5">
               <span className="text-4xl">👋</span>
             </div>
-            <h3 className="text-2xl font-bold text-foreground mb-3 font-serif">
-              You've used your free recipe
-            </h3>
+            <h3 className="text-2xl font-bold text-foreground mb-3 font-serif">You've used your free recipe</h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
               Create a free account to unlock more recipes, daily credits, and saved favorites.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <motion.button
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate("/auth")}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="btn-primary flex items-center justify-center gap-2 px-6"
@@ -346,7 +356,7 @@ export const RecipeCard = ({
                 Create free account
               </motion.button>
               <motion.button
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate("/auth")}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="btn-secondary flex items-center justify-center gap-2 px-6"
@@ -363,7 +373,7 @@ export const RecipeCard = ({
 
   // Show error state
   const isCreditsError = errorMsg.toLowerCase().includes("enough credits");
-  
+
   if (errorMsg) {
     return (
       <section className="section-padding bg-background">
@@ -371,7 +381,7 @@ export const RecipeCard = ({
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             className="card-warm p-8 text-center"
           >
             <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -384,7 +394,7 @@ export const RecipeCard = ({
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               {isCreditsError ? (
                 <motion.button
-                  onClick={() => navigate('/dashboard', { state: { view: 'settings', settingsTab: 'credits' } })}
+                  onClick={() => navigate("/dashboard", { state: { view: "settings", settingsTab: "credits" } })}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="btn-primary flex items-center justify-center gap-2"
@@ -413,16 +423,16 @@ export const RecipeCard = ({
   }
 
   // Parse data from either old or new format
-  const displayMealType = recipe.mealType || recipe.meal_category || 'Recipe';
-  const displayTime = recipe.time || (recipe.time_minutes ? `${recipe.time_minutes} min` : 'N/A');
+  const displayMealType = recipe.mealType || recipe.meal_category || "Recipe";
+  const displayTime = recipe.time || (recipe.time_minutes ? `${recipe.time_minutes} min` : "N/A");
   const displayServings = recipe.servings || 2;
-  const displayCuisine = recipe.cuisine === 'any_surprise_me' ? 'Surprise' : recipe.cuisine || 'Mixed';
+  const displayCuisine = recipe.cuisine === "any_surprise_me" ? "Surprise" : recipe.cuisine || "Mixed";
   const displayTip = recipe.tip || recipe.tips;
   const displayInstructions = recipe.steps || recipe.instructions || [];
-  
+
   // Handle ingredients - can be array of strings or objects
   const formattedIngredients = recipe.ingredients.map((ing) => {
-    if (typeof ing === 'string') {
+    if (typeof ing === "string") {
       return ing;
     }
     return `${ing.quantity} ${ing.unit} ${ing.name}`.trim();
@@ -434,33 +444,27 @@ export const RecipeCard = ({
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="card-warm overflow-hidden"
         >
           {/* Recipe Image */}
-          <div className="relative h-48 sm:h-64 overflow-hidden">
+          <div className="relative h-80 sm:h-96 overflow-hidden">
             {isLoggedIn ? (
               // Logged in user - show real image or loading state
               recipeImageUrl ? (
-                <img
-                  src={recipeImageUrl}
-                  alt={recipe.title}
-                  className="w-full h-full object-cover"
-                />
+                <img src={recipeImageUrl} alt={recipe.title} className="w-full h-full object-cover" />
               ) : isLoadingImage ? (
                 // Image is being generated
                 <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent to-secondary/30 flex items-center justify-center">
                   <div className="text-center">
                     <motion.div
                       animate={{ rotate: 360 }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                       className="mb-3"
                     >
                       <ImageIcon className="w-10 h-10 text-primary" />
                     </motion.div>
-                    <p className="text-sm font-medium text-foreground">
-                      Generating image...
-                    </p>
+                    <p className="text-sm font-medium text-foreground">Generating image...</p>
                     <Loader2 className="w-4 h-4 animate-spin mx-auto mt-2 text-muted-foreground" />
                   </div>
                 </div>
@@ -473,17 +477,11 @@ export const RecipeCard = ({
             ) : (
               // Guest user - show locked state
               <>
-                <img
-                  src={foodPasta}
-                  alt={recipe.title}
-                  className="w-full h-full object-cover blur-sm scale-105"
-                />
+                <img src={foodPasta} alt={recipe.title} className="w-full h-full object-cover blur-sm scale-105" />
                 <div className="absolute inset-0 bg-foreground/40 flex items-center justify-center">
                   <div className="text-center text-primary-foreground">
                     <Lock className="w-8 h-8 mx-auto mb-2 opacity-80" />
-                    <p className="text-sm font-medium opacity-90">
-                      Sign up to see recipe images
-                    </p>
+                    <p className="text-sm font-medium opacity-90">Sign up to see recipe images</p>
                   </div>
                 </div>
               </>
@@ -494,12 +492,8 @@ export const RecipeCard = ({
           <div className="p-6 sm:p-8">
             {/* Header */}
             <div className="mb-6">
-              <h3 className="text-2xl sm:text-3xl font-bold text-foreground font-serif mb-2">
-                {recipe.title}
-              </h3>
-              {recipe.description_short && (
-                <p className="text-muted-foreground mb-3">{recipe.description_short}</p>
-              )}
+              <h3 className="text-2xl sm:text-3xl font-bold text-foreground font-serif mb-2">{recipe.title}</h3>
+              {recipe.description_short && <p className="text-muted-foreground mb-3">{recipe.description_short}</p>}
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full font-medium capitalize">
                   {displayMealType}
@@ -518,9 +512,7 @@ export const RecipeCard = ({
                     {recipe.difficulty}
                   </span>
                 )}
-                <span className="text-muted-foreground capitalize">
-                  {displayCuisine}
-                </span>
+                <span className="text-muted-foreground capitalize">{displayCuisine}</span>
               </div>
             </div>
 
@@ -536,15 +528,9 @@ export const RecipeCard = ({
                   <Flame className="w-4 h-4 text-primary" />
                   <strong>{recipe.nutrition_estimate.calories}</strong> kcal
                 </span>
-                <span className="text-sm text-muted-foreground">
-                  Protein: {recipe.nutrition_estimate.protein}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  Carbs: {recipe.nutrition_estimate.carbs}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  Fat: {recipe.nutrition_estimate.fat}
-                </span>
+                <span className="text-sm text-muted-foreground">Protein: {recipe.nutrition_estimate.protein}</span>
+                <span className="text-sm text-muted-foreground">Carbs: {recipe.nutrition_estimate.carbs}</span>
+                <span className="text-sm text-muted-foreground">Fat: {recipe.nutrition_estimate.fat}</span>
               </motion.div>
             )}
 
@@ -630,13 +616,11 @@ export const RecipeCard = ({
                       <p className="font-semibold text-foreground text-sm mb-1">
                         Register account, save recipe and make your cook book
                       </p>
-                      <p className="text-muted-foreground text-sm">
-                        Create a free account to save unlimited recipes!
-                      </p>
+                      <p className="text-muted-foreground text-sm">Create a free account to save unlimited recipes!</p>
                     </div>
                   </div>
                   <motion.button
-                    onClick={() => navigate('/auth')}
+                    onClick={() => navigate("/auth")}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="btn-primary text-sm px-4 py-2 whitespace-nowrap"
@@ -663,11 +647,7 @@ export const RecipeCard = ({
                 disabled={isSaving || isSaved}
                 whileHover={{ scale: isSaved ? 1 : 1.02 }}
                 whileTap={{ scale: isSaved ? 1 : 0.98 }}
-                className={`flex-1 flex items-center justify-center gap-2 ${
-                  isSaved 
-                    ? 'btn-primary' 
-                    : 'btn-outline'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 ${isSaved ? "btn-primary" : "btn-outline"}`}
               >
                 {isSaving ? (
                   <>
