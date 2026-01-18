@@ -74,7 +74,6 @@ export function GenerateRecipeView() {
         console.error("[image] generation failed:", error);
         // Non-fatal - recipe is still visible
       } else {
-        console.log("[image] generation triggered successfully");
       }
     } catch (err) {
       console.error("[image] unexpected error:", err);
