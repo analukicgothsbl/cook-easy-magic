@@ -1130,10 +1130,10 @@ export function MealPlannerView() {
                                 <img
                                   src={recipeImages[recipe.id]}
                                   alt={recipe.title}
-                                  className="w-full h-30 object-cover"
+                                  className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <div className="w-full h-30 bg-muted flex items-center justify-center">
+                                <div className="w-full h-full bg-muted flex items-center justify-center">
                                   <span className="text-xs text-muted-foreground/50 font-medium">No Image</span>
                                 </div>
                               )}
