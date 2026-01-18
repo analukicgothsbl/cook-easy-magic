@@ -880,12 +880,15 @@ export function MealPlannerView() {
                                   if (error) {
                                     console.error("Error generating meal plan:", error);
                                     // Try to parse error context for 402 insufficient credits
+                                    // error.context is a Response object, need to call json() on it
                                     try {
-                                      const errorContext = JSON.parse(error.context?.body || "{}");
-                                      if (errorContext.error === "INSUFFICIENT_CREDITS") {
-                                        setShowCreditsError(true);
-                                        setShowMealPlanForm(false);
-                                        return;
+                                      if (error.context && typeof error.context.json === 'function') {
+                                        const errorData = await error.context.json();
+                                        if (errorData?.error === "INSUFFICIENT_CREDITS") {
+                                          setShowCreditsError(true);
+                                          setShowMealPlanForm(false);
+                                          return;
+                                        }
                                       }
                                     } catch {
                                       // Not a JSON error, continue with generic message
