@@ -1,31 +1,31 @@
-import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Plus, 
-  X, 
-  Clock, 
-  Users, 
+import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  X,
+  Clock,
+  Users,
   ChefHat,
   Loader2,
   Calendar,
   Trash2,
   Search,
-  Eye
-} from 'lucide-react';
-import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { RecipeDetailModal } from './RecipeDetailModal';
-import type { Recipe } from '@/components/RecipeCard';
-import type { Json } from '@/integrations/supabase/types';
+  Eye,
+} from "lucide-react";
+import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { RecipeDetailModal } from "./RecipeDetailModal";
+import type { Recipe } from "@/components/RecipeCard";
+import type { Json } from "@/integrations/supabase/types";
 
 type MealCategoryFilter = "all" | "breakfast" | "lunch" | "dinner" | "dessert" | "snack";
 type CuisineFilter =
@@ -62,20 +62,18 @@ interface Ingredient {
 }
 
 const MEAL_SLOTS = [
-  { id: 'breakfast', label: 'Breakfast', icon: '🌅' },
-  { id: 'snack_morning', label: 'Morning Snack', icon: '🍎' },
-  { id: 'lunch', label: 'Lunch', icon: '☀️' },
-  { id: 'snack_afternoon', label: 'Afternoon Snack', icon: '🍪' },
-  { id: 'dinner', label: 'Dinner', icon: '🌙' },
+  { id: "breakfast", label: "Breakfast", icon: "🌅" },
+  { id: "snack_morning", label: "Snack 1", icon: "🍎" },
+  { id: "lunch", label: "Lunch", icon: "☀️" },
+  { id: "snack_afternoon", label: "Snack 2", icon: "🍪" },
+  { id: "dinner", label: "Dinner", icon: "🌙" },
 ] as const;
 
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function MealPlannerView() {
   const { user } = useAuth();
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => 
-    startOfWeek(new Date(), { weekStartsOn: 0 })
-  );
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [mealPlan, setMealPlan] = useState<MealPlanEntry[]>([]);
   const [favorites, setFavorites] = useState<RecipeWithMeta[]>([]);
   const [recipeImages, setRecipeImages] = useState<Record<string, string>>({});
@@ -83,7 +81,7 @@ export function MealPlannerView() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [addMealModal, setAddMealModal] = useState<{ date: Date; slot: string } | null>(null);
   const [viewRecipeModal, setViewRecipeModal] = useState<RecipeWithMeta | null>(null);
-  
+
   // Modal filter states
   const [modalMealFilter, setModalMealFilter] = useState<MealCategoryFilter>("all");
   const [modalCuisineFilter, setModalCuisineFilter] = useState<CuisineFilter>("all");
@@ -130,11 +128,11 @@ export function MealPlannerView() {
         // Search in ingredients
         if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
           return recipe.ingredients.some((ing) => {
-            if (typeof ing === 'string') {
+            if (typeof ing === "string") {
               return ing.toLowerCase().includes(query);
             }
             // If ingredient is an object with name property
-            if (ing && typeof ing === 'object' && 'name' in ing) {
+            if (ing && typeof ing === "object" && "name" in ing) {
               return (ing as Ingredient).name.toLowerCase().includes(query);
             }
             return false;
@@ -157,20 +155,21 @@ export function MealPlannerView() {
         // Fetch meal plan for current week
         const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
         const { data: mealPlanData, error: mealPlanError } = await supabase
-          .from('meal_plan')
-          .select('id, plan_date, meal_slot, recipe_id, custom_text')
-          .eq('user_id', user.id)
-          .gte('plan_date', format(currentWeekStart, 'yyyy-MM-dd'))
-          .lte('plan_date', format(weekEnd, 'yyyy-MM-dd'));
+          .from("meal_plan")
+          .select("id, plan_date, meal_slot, recipe_id, custom_text")
+          .eq("user_id", user.id)
+          .gte("plan_date", format(currentWeekStart, "yyyy-MM-dd"))
+          .lte("plan_date", format(weekEnd, "yyyy-MM-dd"));
 
         if (mealPlanError) {
-          console.error('Error fetching meal plan:', mealPlanError);
+          console.error("Error fetching meal plan:", mealPlanError);
         }
 
         // Fetch favorites
         const { data: favoritesData, error: favoritesError } = await supabase
-          .from('recipe_favorites')
-          .select(`
+          .from("recipe_favorites")
+          .select(
+            `
             recipe_id,
             created_at,
             recipe:recipe_id (
@@ -190,12 +189,13 @@ export function MealPlannerView() {
               tips,
               nutrition_estimate
             )
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+          `,
+          )
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
 
         if (favoritesError) {
-          console.error('Error fetching favorites:', favoritesError);
+          console.error("Error fetching favorites:", favoritesError);
         }
 
         // Format favorites
@@ -219,7 +219,7 @@ export function MealPlannerView() {
               tips: string | null;
               nutrition_estimate: Json | null;
             };
-            
+
             return {
               id: recipe.id,
               title: recipe.title,
@@ -235,7 +235,7 @@ export function MealPlannerView() {
               ingredients: (recipe.ingredients || []) as (string | Ingredient)[],
               instructions: recipe.instructions ? [recipe.instructions] : [],
               tips: recipe.tips || undefined,
-              nutrition_estimate: recipe.nutrition_estimate as unknown as Recipe['nutrition_estimate'],
+              nutrition_estimate: recipe.nutrition_estimate as unknown as Recipe["nutrition_estimate"],
               created_at: item.created_at,
             };
           });
@@ -243,10 +243,10 @@ export function MealPlannerView() {
         setFavorites(formattedFavorites);
 
         // Create recipe lookup map
-        const recipeMap = new Map(formattedFavorites.map(r => [r.id, r]));
+        const recipeMap = new Map(formattedFavorites.map((r) => [r.id, r]));
 
         // Format meal plan with recipe details
-        const formattedMealPlan: MealPlanEntry[] = (mealPlanData || []).map(entry => ({
+        const formattedMealPlan: MealPlanEntry[] = (mealPlanData || []).map((entry) => ({
           ...entry,
           recipe: recipeMap.get(entry.recipe_id),
         }));
@@ -254,20 +254,22 @@ export function MealPlannerView() {
         setMealPlan(formattedMealPlan);
 
         // Fetch recipe images
-        const allRecipeIds = [...new Set([
-          ...formattedFavorites.map(r => r.id),
-          ...(mealPlanData || []).map(m => m.recipe_id).filter((id): id is string => id !== null)
-        ])].filter(Boolean);
+        const allRecipeIds = [
+          ...new Set([
+            ...formattedFavorites.map((r) => r.id),
+            ...(mealPlanData || []).map((m) => m.recipe_id).filter((id): id is string => id !== null),
+          ]),
+        ].filter(Boolean);
 
         if (allRecipeIds.length > 0) {
           const { data: imageData } = await supabase
-            .from('recipe_image')
-            .select('recipe_id, image_url')
-            .in('recipe_id', allRecipeIds);
+            .from("recipe_image")
+            .select("recipe_id, image_url")
+            .in("recipe_id", allRecipeIds);
 
           if (imageData) {
             const imageMap: Record<string, string> = {};
-            imageData.forEach(img => {
+            imageData.forEach((img) => {
               if (img.image_url) {
                 imageMap[img.recipe_id] = img.image_url;
               }
@@ -276,7 +278,7 @@ export function MealPlannerView() {
           }
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error("Error:", error);
       } finally {
         setIsLoading(false);
       }
@@ -287,19 +289,19 @@ export function MealPlannerView() {
 
   // Get meal for a specific date and slot
   const getMealForSlot = (date: Date, slotId: string): MealPlanEntry | undefined => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    return mealPlan.find(m => m.plan_date === dateStr && m.meal_slot === slotId);
+    const dateStr = format(date, "yyyy-MM-dd");
+    return mealPlan.find((m) => m.plan_date === dateStr && m.meal_slot === slotId);
   };
 
   // Add meal to plan
   const handleAddMeal = async (recipeId: string) => {
     if (!user || !addMealModal) return;
 
-    const dateStr = format(addMealModal.date, 'yyyy-MM-dd');
+    const dateStr = format(addMealModal.date, "yyyy-MM-dd");
 
     try {
       const { data, error } = await supabase
-        .from('meal_plan')
+        .from("meal_plan")
         .insert({
           user_id: user.id,
           plan_date: dateStr,
@@ -310,22 +312,22 @@ export function MealPlannerView() {
         .single();
 
       if (error) {
-        if (error.code === '23505') {
-          toast.error('A meal is already planned for this slot');
+        if (error.code === "23505") {
+          toast.error("A meal is already planned for this slot");
         } else {
-          toast.error('Failed to add meal');
-          console.error('Error adding meal:', error);
+          toast.error("Failed to add meal");
+          console.error("Error adding meal:", error);
         }
         return;
       }
 
-      const recipe = favorites.find(f => f.id === recipeId);
-      setMealPlan(prev => [...prev, { ...data, recipe }]);
+      const recipe = favorites.find((f) => f.id === recipeId);
+      setMealPlan((prev) => [...prev, { ...data, recipe }]);
       setAddMealModal(null);
-      toast.success('Meal added to plan!');
+      toast.success("Meal added to plan!");
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to add meal');
+      console.error("Error:", error);
+      toast.error("Failed to add meal");
     }
   };
 
@@ -333,11 +335,11 @@ export function MealPlannerView() {
   const handleAddCustomMeal = async () => {
     if (!user || !addMealModal || !customMealText.trim()) return;
 
-    const dateStr = format(addMealModal.date, 'yyyy-MM-dd');
+    const dateStr = format(addMealModal.date, "yyyy-MM-dd");
 
     try {
       const { data, error } = await supabase
-        .from('meal_plan')
+        .from("meal_plan")
         .insert({
           user_id: user.id,
           plan_date: dateStr,
@@ -348,21 +350,21 @@ export function MealPlannerView() {
         .single();
 
       if (error) {
-        if (error.code === '23505') {
-          toast.error('A meal is already planned for this slot');
+        if (error.code === "23505") {
+          toast.error("A meal is already planned for this slot");
         } else {
-          toast.error('Failed to add custom meal');
-          console.error('Error adding custom meal:', error);
+          toast.error("Failed to add custom meal");
+          console.error("Error adding custom meal:", error);
         }
         return;
       }
 
-      setMealPlan(prev => [...prev, data]);
+      setMealPlan((prev) => [...prev, data]);
       setAddMealModal(null);
-      toast.success('Custom meal added to plan!');
+      toast.success("Custom meal added to plan!");
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to add custom meal');
+      console.error("Error:", error);
+      toast.error("Failed to add custom meal");
     }
   };
 
@@ -371,29 +373,25 @@ export function MealPlannerView() {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('meal_plan')
-        .delete()
-        .eq('id', mealId)
-        .eq('user_id', user.id);
+      const { error } = await supabase.from("meal_plan").delete().eq("id", mealId).eq("user_id", user.id);
 
       if (error) {
-        toast.error('Failed to remove meal');
-        console.error('Error removing meal:', error);
+        toast.error("Failed to remove meal");
+        console.error("Error removing meal:", error);
         return;
       }
 
-      setMealPlan(prev => prev.filter(m => m.id !== mealId));
-      toast.success('Meal removed');
+      setMealPlan((prev) => prev.filter((m) => m.id !== mealId));
+      toast.success("Meal removed");
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to remove meal');
+      console.error("Error:", error);
+      toast.error("Failed to remove meal");
     }
   };
 
   // Navigate weeks
-  const goToPreviousWeek = () => setCurrentWeekStart(prev => subWeeks(prev, 1));
-  const goToNextWeek = () => setCurrentWeekStart(prev => addWeeks(prev, 1));
+  const goToPreviousWeek = () => setCurrentWeekStart((prev) => subWeeks(prev, 1));
+  const goToNextWeek = () => setCurrentWeekStart((prev) => addWeeks(prev, 1));
   const goToCurrentWeek = () => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
 
   if (isLoading) {
@@ -423,7 +421,7 @@ export function MealPlannerView() {
           </Button>
         </div>
         <h2 className="text-lg font-semibold text-foreground">
-          {format(currentWeekStart, 'MMM d')} - {format(addDays(currentWeekStart, 6), 'MMM d, yyyy')}
+          {format(currentWeekStart, "MMM d")} - {format(addDays(currentWeekStart, 6), "MMM d, yyyy")}
         </h2>
       </div>
 
@@ -432,7 +430,7 @@ export function MealPlannerView() {
         {weekDays.map((day, dayIndex) => {
           const isToday = isSameDay(day, new Date());
           const isSelected = selectedDay && isSameDay(day, selectedDay);
-          const dayMeals = mealPlan.filter(m => m.plan_date === format(day, 'yyyy-MM-dd'));
+          const dayMeals = mealPlan.filter((m) => m.plan_date === format(day, "yyyy-MM-dd"));
 
           return (
             <motion.div
@@ -441,15 +439,15 @@ export function MealPlannerView() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: dayIndex * 0.05 }}
               className={`card-warm p-3 cursor-pointer transition-all ${
-                isToday ? 'ring-2 ring-primary' : ''
-              } ${isSelected ? 'bg-primary/5' : ''}`}
+                isToday ? "ring-2 ring-primary" : ""
+              } ${isSelected ? "bg-primary/5" : ""}`}
               onClick={() => setSelectedDay(isSelected ? null : day)}
             >
               {/* Day Header */}
               <div className="text-center mb-3">
                 <p className="text-xs text-muted-foreground uppercase">{DAY_NAMES[dayIndex]}</p>
-                <p className={`text-lg font-bold ${isToday ? 'text-primary' : 'text-foreground'}`}>
-                  {format(day, 'd')}
+                <p className={`text-lg font-bold ${isToday ? "text-primary" : "text-foreground"}`}>
+                  {format(day, "d")}
                 </p>
               </div>
 
@@ -461,9 +459,7 @@ export function MealPlannerView() {
                     <div
                       key={slot.id}
                       className={`text-xs p-1.5 rounded transition-colors ${
-                        meal 
-                          ? 'bg-primary/10 text-foreground' 
-                          : 'bg-muted/50 text-muted-foreground'
+                        meal ? "bg-primary/10 text-foreground" : "bg-muted/50 text-muted-foreground"
                       }`}
                     >
                       <div className="flex items-center gap-1">
@@ -481,7 +477,7 @@ export function MealPlannerView() {
               {dayMeals.length > 0 && (
                 <div className="mt-2 text-center">
                   <span className="text-xs text-primary font-medium">
-                    {dayMeals.length} meal{dayMeals.length !== 1 ? 's' : ''} planned
+                    {dayMeals.length} meal{dayMeals.length !== 1 ? "s" : ""} planned
                   </span>
                 </div>
               )}
@@ -495,15 +491,13 @@ export function MealPlannerView() {
         {selectedDay && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="mt-6 overflow-hidden"
           >
             <div className="card-warm p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-foreground">
-                  {format(selectedDay, 'EEEE, MMMM d')}
-                </h3>
+                <h3 className="text-xl font-bold text-foreground">{format(selectedDay, "EEEE, MMMM d")}</h3>
                 <Button variant="ghost" size="icon" onClick={() => setSelectedDay(null)}>
                   <X className="w-4 h-4" />
                 </Button>
@@ -515,10 +509,7 @@ export function MealPlannerView() {
                   const recipe = meal?.recipe;
 
                   return (
-                    <div
-                      key={slot.id}
-                      className="bg-muted/30 rounded-lg p-4 border border-border"
-                    >
+                    <div key={slot.id} className="bg-muted/30 rounded-lg p-4 border border-border">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{slot.icon}</span>
@@ -541,9 +532,7 @@ export function MealPlannerView() {
 
                       {recipe ? (
                         <div className="space-y-2">
-                          <h5 className="font-bold text-foreground text-sm line-clamp-2">
-                            {recipe.title}
-                          </h5>
+                          <h5 className="font-bold text-foreground text-sm line-clamp-2">{recipe.title}</h5>
                           <Button
                             variant="outline"
                             size="sm"
@@ -573,9 +562,7 @@ export function MealPlannerView() {
                         </div>
                       ) : meal?.custom_text ? (
                         <div className="space-y-2">
-                          <h5 className="font-bold text-foreground text-sm line-clamp-2">
-                            {meal.custom_text}
-                          </h5>
+                          <h5 className="font-bold text-foreground text-sm line-clamp-2">{meal.custom_text}</h5>
                           <p className="text-xs text-muted-foreground italic">Custom entry</p>
                         </div>
                       ) : (
@@ -601,8 +588,8 @@ export function MealPlannerView() {
         <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
-              Add {MEAL_SLOTS.find(s => s.id === addMealModal?.slot)?.label} for{' '}
-              {addMealModal && format(addMealModal.date, 'EEEE, MMM d')}
+              Add {MEAL_SLOTS.find((s) => s.id === addMealModal?.slot)?.label} for{" "}
+              {addMealModal && format(addMealModal.date, "EEEE, MMM d")}
             </DialogTitle>
           </DialogHeader>
 
@@ -618,7 +605,7 @@ export function MealPlannerView() {
                 className="pl-10 w-full"
               />
             </div>
-            
+
             {/* Filter dropdowns - aligned right */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* Meal Category Filter */}
@@ -695,9 +682,7 @@ export function MealPlannerView() {
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-foreground line-clamp-1">{recipe.title}</h4>
                       {recipe.description_short && (
-                        <p className="text-sm text-muted-foreground line-clamp-1">
-                          {recipe.description_short}
-                        </p>
+                        <p className="text-sm text-muted-foreground line-clamp-1">{recipe.description_short}</p>
                       )}
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         {recipe.meal_category && (
@@ -734,15 +719,12 @@ export function MealPlannerView() {
                 onChange={(e) => setCustomMealText(e.target.value)}
                 className="flex-1"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && customMealText.trim()) {
+                  if (e.key === "Enter" && customMealText.trim()) {
                     handleAddCustomMeal();
                   }
                 }}
               />
-              <Button 
-                onClick={handleAddCustomMeal}
-                disabled={!customMealText.trim()}
-              >
+              <Button onClick={handleAddCustomMeal} disabled={!customMealText.trim()}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add
               </Button>
@@ -752,10 +734,7 @@ export function MealPlannerView() {
       </Dialog>
 
       {/* Recipe Detail Modal */}
-      <RecipeDetailModal 
-        recipe={viewRecipeModal} 
-        onClose={() => setViewRecipeModal(null)} 
-      />
+      <RecipeDetailModal recipe={viewRecipeModal} onClose={() => setViewRecipeModal(null)} />
     </div>
   );
 }
