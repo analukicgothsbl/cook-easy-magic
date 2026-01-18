@@ -622,7 +622,7 @@ export function MealPlannerView() {
             className="mt-6 overflow-hidden"
           >
             <div className="card-warm p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 px-4">
                 <h3 className="text-xl font-bold text-foreground">{format(selectedDay, "EEEE, MMMM d")}</h3>
                 <div className="flex items-center gap-2">
                   <Button
@@ -681,7 +681,7 @@ export function MealPlannerView() {
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden mb-6"
                   >
-                    <div className="bg-secondary/50 rounded-xl p-6 border border-border">
+                    <div className="max-w-4xl mx-auto bg-secondary/50 rounded-xl p-6 border border-border">
                       {isLoadingUserOptions ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -882,7 +882,7 @@ export function MealPlannerView() {
                                     // Try to parse error context for 402 insufficient credits
                                     // error.context is a Response object, need to call json() on it
                                     try {
-                                      if (error.context && typeof error.context.json === 'function') {
+                                      if (error.context && typeof error.context.json === "function") {
                                         const errorData = await error.context.json();
                                         if (errorData?.error === "INSUFFICIENT_CREDITS") {
                                           setShowCreditsError(true);
