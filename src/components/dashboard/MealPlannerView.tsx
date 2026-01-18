@@ -530,50 +530,58 @@ export function MealPlannerView() {
                         )}
                       </div>
 
-                      {recipe ? (
-                        <div className="space-y-2">
-                          <h5 className="font-bold text-foreground text-sm line-clamp-2">{recipe.title}</h5>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setViewRecipeModal({ ...recipe, image_url: recipeImages[recipe.id] });
-                            }}
-                          >
-                            <Eye className="w-3 h-3 mr-1" />
-                            View recipe
-                          </Button>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            {recipe.time_minutes && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {recipe.time_minutes}m
-                              </span>
-                            )}
-                            {recipe.servings && (
-                              <span className="flex items-center gap-1">
-                                <Users className="w-3 h-3" />
-                                {recipe.servings}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ) : meal?.custom_text ? (
-                        <div className="space-y-2">
-                          <h5 className="font-bold text-foreground text-sm line-clamp-2">{meal.custom_text}</h5>
-                          <p className="text-xs text-muted-foreground italic">Custom entry</p>
-                        </div>
-                      ) : (
-                        <button
-                          className="w-full py-2 px-4 rounded-full bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                          onClick={() => setAddMealModal({ date: selectedDay, slot: slot.id })}
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add Recipe
-                        </button>
-                      )}
+                      <div className="flex flex-col justify-between flex-1">
+                        {recipe ? (
+                          <>
+                            <div className="space-y-1">
+                              <h5 className="font-bold text-foreground text-sm line-clamp-2">{recipe.title}</h5>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {recipe.time_minutes && (
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {recipe.time_minutes}m
+                                  </span>
+                                )}
+                                {recipe.servings && (
+                                  <span className="flex items-center gap-1">
+                                    <Users className="w-3 h-3" />
+                                    {recipe.servings}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              className="w-full py-2 px-4 rounded-full bg-primary/10 text-primary font-medium text-sm hover:bg-primary hover:text-primary-foreground transition-colors flex items-center justify-center gap-2 mt-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setViewRecipeModal({ ...recipe, image_url: recipeImages[recipe.id] });
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                              View Recipe
+                            </button>
+                          </>
+                        ) : meal?.custom_text ? (
+                          <>
+                            <div className="space-y-1">
+                              <h5 className="font-bold text-foreground text-sm line-clamp-2">{meal.custom_text}</h5>
+                              <p className="text-xs text-muted-foreground italic">Custom entry</p>
+                            </div>
+                            <div className="mt-2" />
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex-1" />
+                            <button
+                              className="w-full py-2 px-4 rounded-full bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                              onClick={() => setAddMealModal({ date: selectedDay, slot: slot.id })}
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add Recipe
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
