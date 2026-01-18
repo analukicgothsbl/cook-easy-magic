@@ -1028,15 +1028,19 @@ export function MealPlannerView() {
                       <div className="flex-1 flex flex-col justify-between">
                         {recipe ? (
                           <>
-                            {recipeImages[recipe.id] && (
-                              <div className="w-full h-20 rounded-lg overflow-hidden mb-2">
+                            <div className="w-full h-20 rounded-lg overflow-hidden mb-2 relative">
+                              {recipeImages[recipe.id] ? (
                                 <img
                                   src={recipeImages[recipe.id]}
                                   alt={recipe.title}
                                   className="w-full h-full object-cover"
                                 />
-                              </div>
-                            )}
+                              ) : (
+                                <div className="w-full h-full bg-muted flex items-center justify-center">
+                                  <span className="text-xs text-muted-foreground/50 font-medium">No Image</span>
+                                </div>
+                              )}
+                            </div>
                             <div className="space-y-1">
                               <h5 className="font-medium text-foreground text-sm line-clamp-2">{recipe.title}</h5>
                               <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -1067,6 +1071,11 @@ export function MealPlannerView() {
                           </>
                         ) : meal?.custom_text ? (
                           <>
+                            <div className="w-full h-20 rounded-lg overflow-hidden mb-2">
+                              <div className="w-full h-full bg-muted flex items-center justify-center">
+                                <span className="text-xs text-muted-foreground/50 font-medium">No Image</span>
+                              </div>
+                            </div>
                             <div className="space-y-1">
                               <h5 className="font-medium text-foreground text-sm line-clamp-2">{meal.custom_text}</h5>
                               <p className="text-xs text-muted-foreground italic">Custom entry</p>
