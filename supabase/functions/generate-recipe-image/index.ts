@@ -100,38 +100,61 @@ Deno.serve(async (req) => {
     const { data: authData } = await userClient.auth.getUser();
     const authedUserId = authData?.user?.id ?? null;
 
-    if (!authedUserId) {
-      return jsonResponse(401, { error: "Unauthorized", request_id: requestId });
-    }
+    // Check if this is a guest-generated recipe (no user auth, but recipe exists)
+    // For guest recipes, we allow image generation without auth check
+    // This enables background image generation for guest recipes
+    const isGuestRequest = !authedUserId;
 
-    // Check if user is admin OR owns the recipe
-    const { data: userExt } = await adminClient
-      .from("user_extended")
-      .select("role")
-      .eq("user_id", authedUserId)
-      .maybeSingle();
+    if (isGuestRequest) {
+      // For guest requests, just verify the recipe exists
+      const { data: recipeExists } = await adminClient
+        .from("recipe")
+        .select("id")
+        .eq("id", recipe_id)
+        .maybeSingle();
 
-    const isAdmin = userExt?.role === "admin";
+      if (!recipeExists) {
+        console.error("[generate-recipe-image] Guest request: recipe not found", {
+          requestId,
+          recipe_id,
+        });
+        return jsonResponse(404, { error: "Recipe not found", request_id: requestId });
+      }
 
-    // If not admin, check if user owns this recipe
-    if (!isAdmin) {
-      const { data: recipeOwnership } = await adminClient
-        .from("recipe_user")
-        .select("user_id")
-        .eq("recipe_id", recipe_id)
+      console.log("[generate-recipe-image] Guest request: proceeding with image generation", {
+        requestId,
+        recipe_id,
+      });
+    } else {
+      // For authenticated users, check if user is admin OR owns the recipe
+      const { data: userExt } = await adminClient
+        .from("user_extended")
+        .select("role")
         .eq("user_id", authedUserId)
         .maybeSingle();
 
-      if (!recipeOwnership) {
-        console.error("[generate-recipe-image] User does not own recipe", {
-          requestId,
-          authedUserId,
-          recipe_id,
-        });
-        return jsonResponse(403, {
-          error: "You can only generate images for your own recipes",
-          request_id: requestId,
-        });
+      const isAdmin = userExt?.role === "admin";
+
+      // If not admin, check if user owns this recipe
+      if (!isAdmin) {
+        const { data: recipeOwnership } = await adminClient
+          .from("recipe_user")
+          .select("user_id")
+          .eq("recipe_id", recipe_id)
+          .eq("user_id", authedUserId)
+          .maybeSingle();
+
+        if (!recipeOwnership) {
+          console.error("[generate-recipe-image] User does not own recipe", {
+            requestId,
+            authedUserId,
+            recipe_id,
+          });
+          return jsonResponse(403, {
+            error: "You can only generate images for your own recipes",
+            request_id: requestId,
+          });
+        }
       }
     }
 
