@@ -509,33 +509,33 @@ export function MealPlannerView() {
                   const recipe = meal?.recipe;
 
                   return (
-                    <div key={slot.id} className="bg-muted/30 rounded-lg p-4 border border-border">
-                      <div className="flex items-center justify-between mb-3">
+                    <div key={slot.id} className="bg-card rounded-xl p-4 shadow-sm border border-border flex flex-col min-h-[160px]">
+                      {/* Header: Icon + Label + Delete */}
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{slot.icon}</span>
-                          <h4 className="font-medium text-foreground">{slot.label}</h4>
+                          <h4 className="font-semibold text-foreground">{slot.label}</h4>
                         </div>
                         {meal && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
+                          <button
+                            className="p-1.5 rounded-md text-destructive/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleRemoveMeal(meal.id);
                             }}
                           >
                             <Trash2 className="w-4 h-4" />
-                          </Button>
+                          </button>
                         )}
                       </div>
 
-                      <div className="flex flex-col justify-between flex-1">
+                      {/* Content: Recipe details or empty space */}
+                      <div className="flex-1 flex flex-col justify-between">
                         {recipe ? (
                           <>
                             <div className="space-y-1">
-                              <h5 className="font-bold text-foreground text-sm line-clamp-2">{recipe.title}</h5>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <h5 className="font-medium text-foreground text-sm line-clamp-2">{recipe.title}</h5>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                 {recipe.time_minutes && (
                                   <span className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
@@ -551,7 +551,7 @@ export function MealPlannerView() {
                               </div>
                             </div>
                             <button
-                              className="w-full py-2 px-4 rounded-full bg-primary/10 text-primary font-medium text-sm hover:bg-primary hover:text-primary-foreground transition-colors flex items-center justify-center gap-2 mt-2"
+                              className="mt-3 py-2 px-4 rounded-full border border-primary/30 bg-primary/10 text-primary font-medium text-sm hover:bg-primary hover:text-primary-foreground transition-colors flex items-center justify-center gap-2"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setViewRecipeModal({ ...recipe, image_url: recipeImages[recipe.id] });
@@ -564,16 +564,16 @@ export function MealPlannerView() {
                         ) : meal?.custom_text ? (
                           <>
                             <div className="space-y-1">
-                              <h5 className="font-bold text-foreground text-sm line-clamp-2">{meal.custom_text}</h5>
+                              <h5 className="font-medium text-foreground text-sm line-clamp-2">{meal.custom_text}</h5>
                               <p className="text-xs text-muted-foreground italic">Custom entry</p>
                             </div>
-                            <div className="mt-2" />
+                            <div className="mt-3" />
                           </>
                         ) : (
                           <>
                             <div className="flex-1" />
                             <button
-                              className="w-full py-2 px-4 rounded-full bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                              className="mt-3 py-2 px-4 rounded-full bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                               onClick={() => setAddMealModal({ date: selectedDay, slot: slot.id })}
                             >
                               <Plus className="w-4 h-4" />
