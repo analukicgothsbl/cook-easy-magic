@@ -487,6 +487,7 @@ export type Database = {
         | "purchased_credit"
         | "admin_bonus"
         | "buy_credits_paypal"
+        | "generate_meal_planner"
       credit_type: "income" | "cost"
       cuisine_type:
         | "any_surprise_me"
@@ -640,6 +641,7 @@ export const Constants = {
         "purchased_credit",
         "admin_bonus",
         "buy_credits_paypal",
+        "generate_meal_planner",
       ],
       credit_type: ["income", "cost"],
       cuisine_type: [

@@ -127,6 +127,7 @@ const formatReason = (reason: CreditReason): string => {
     donate_bonus: 'Donation Bonus',
     purchased_credit: 'Purchased Credit',
     buy_credits_paypal: 'PayPal Purchase',
+    generate_meal_planner: 'Meal Plan Generation',
   };
   return reasonMap[reason] || reason;
 };

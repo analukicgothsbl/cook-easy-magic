@@ -49,9 +49,9 @@ interface GeneratedRecipe {
 }
 
 // -------------------- CREDIT COST (USD) from tokens --------------------
-// costUsd = (inputTokens * 0.00015) + (outputTokens * 0.0006)
+// costUsd = (inputTokens * 0.0015) + (outputTokens * 0.0006)
 function calcCostUsd(inputTokens: number, outputTokens: number) {
-  return inputTokens * 0.00015 + outputTokens * 0.0006;
+  return inputTokens * 0.0015 + outputTokens * 0.0006;
 }
 
 // -------------------- FIXED MINIMUM CREDITS PRECHECK --------------------
