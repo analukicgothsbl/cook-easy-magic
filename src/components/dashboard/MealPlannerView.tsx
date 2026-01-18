@@ -498,9 +498,17 @@ export function MealPlannerView() {
             <div className="card-warm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-foreground">{format(selectedDay, "EEEE, MMMM d")}</h3>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedDay(null)}>
-                  <X className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    className="rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/90"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Create Full-Day Meal Plan
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedDay(null)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
