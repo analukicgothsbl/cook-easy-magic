@@ -10,7 +10,8 @@ import {
   ChefHat,
   Loader2,
   Calendar,
-  Trash2
+  Trash2,
+  Search
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,8 +20,23 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import type { Recipe } from '@/components/RecipeCard';
 import type { Json } from '@/integrations/supabase/types';
+
+type MealCategoryFilter = "all" | "breakfast" | "lunch" | "dinner" | "dessert" | "snack";
+type CuisineFilter =
+  | "all"
+  | "any_surprise_me"
+  | "home_style_traditional"
+  | "italian"
+  | "mediterranean"
+  | "mexican"
+  | "asian"
+  | "balkan"
+  | "healthy_light"
+  | "comfort_food";
 
 interface RecipeWithMeta extends Recipe {
   id: string;
@@ -63,11 +79,67 @@ export function MealPlannerView() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [addMealModal, setAddMealModal] = useState<{ date: Date; slot: string } | null>(null);
+  
+  // Modal filter states
+  const [modalMealFilter, setModalMealFilter] = useState<MealCategoryFilter>("all");
+  const [modalCuisineFilter, setModalCuisineFilter] = useState<CuisineFilter>("all");
+  const [modalSearchQuery, setModalSearchQuery] = useState("");
 
   // Generate week days
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   }, [currentWeekStart]);
+
+  // Reset modal filters when modal closes
+  useEffect(() => {
+    if (!addMealModal) {
+      setModalMealFilter("all");
+      setModalCuisineFilter("all");
+      setModalSearchQuery("");
+    }
+  }, [addMealModal]);
+
+  // Filter favorites for modal
+  const filteredFavorites = useMemo(() => {
+    let result = [...favorites];
+
+    // Apply meal category filter
+    if (modalMealFilter !== "all") {
+      result = result.filter((r) => r.meal_category === modalMealFilter);
+    }
+
+    // Apply cuisine filter
+    if (modalCuisineFilter !== "all") {
+      result = result.filter((r) => r.cuisine === modalCuisineFilter);
+    }
+
+    // Apply search query (case-insensitive search in title and ingredients)
+    if (modalSearchQuery.trim()) {
+      const query = modalSearchQuery.toLowerCase().trim();
+      result = result.filter((recipe) => {
+        // Search in title
+        if (recipe.title.toLowerCase().includes(query)) {
+          return true;
+        }
+        // Search in ingredients
+        if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
+          return recipe.ingredients.some((ing) => {
+            if (typeof ing === 'string') {
+              return ing.toLowerCase().includes(query);
+            }
+            // If ingredient is an object with name property
+            if (ing && typeof ing === 'object' && 'name' in ing) {
+              return (ing as Ingredient).name.toLowerCase().includes(query);
+            }
+            return false;
+          });
+        }
+        return false;
+      });
+    }
+
+    return result;
+  }, [favorites, modalMealFilter, modalCuisineFilter, modalSearchQuery]);
 
   // Fetch meal plan and favorites
   useEffect(() => {
@@ -476,7 +548,7 @@ export function MealPlannerView() {
 
       {/* Add Meal Modal */}
       <Dialog open={!!addMealModal} onOpenChange={() => setAddMealModal(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogContent className="max-w-2xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle>
               Add {MEAL_SLOTS.find(s => s.id === addMealModal?.slot)?.label} for{' '}
@@ -484,7 +556,58 @@ export function MealPlannerView() {
             </DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="h-[60vh] pr-4">
+          {/* Filter and Search Options */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-3 border-b border-border">
+            {/* Search Input - takes more space */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by title or ingredient..."
+                value={modalSearchQuery}
+                onChange={(e) => setModalSearchQuery(e.target.value)}
+                className="pl-10 w-full"
+              />
+            </div>
+            
+            {/* Filter dropdowns - aligned right */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Meal Category Filter */}
+              <Select value={modalMealFilter} onValueChange={(value: MealCategoryFilter) => setModalMealFilter(value)}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Meal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Meals</SelectItem>
+                  <SelectItem value="breakfast">Breakfast</SelectItem>
+                  <SelectItem value="lunch">Lunch</SelectItem>
+                  <SelectItem value="dinner">Dinner</SelectItem>
+                  <SelectItem value="dessert">Dessert</SelectItem>
+                  <SelectItem value="snack">Snack</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Cuisine Filter */}
+              <Select value={modalCuisineFilter} onValueChange={(value: CuisineFilter) => setModalCuisineFilter(value)}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Cuisine" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cuisines</SelectItem>
+                  <SelectItem value="any_surprise_me">Any</SelectItem>
+                  <SelectItem value="home_style_traditional">Traditional</SelectItem>
+                  <SelectItem value="italian">Italian</SelectItem>
+                  <SelectItem value="mediterranean">Mediterranean</SelectItem>
+                  <SelectItem value="mexican">Mexican</SelectItem>
+                  <SelectItem value="asian">Asian</SelectItem>
+                  <SelectItem value="balkan">Balkan</SelectItem>
+                  <SelectItem value="healthy_light">Healthy Light</SelectItem>
+                  <SelectItem value="comfort_food">Comfort Food</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <ScrollArea className="h-[55vh] pr-4">
             {favorites.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <ChefHat className="w-12 h-12 text-muted-foreground mb-4" />
@@ -492,9 +615,16 @@ export function MealPlannerView() {
                   No favorite recipes yet. Add some recipes to your favorites first!
                 </p>
               </div>
+            ) : filteredFavorites.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Search className="w-12 h-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  No recipes match your filters. Try adjusting your search or filters.
+                </p>
+              </div>
             ) : (
               <div className="grid grid-cols-1 gap-3">
-                {favorites.map((recipe) => (
+                {filteredFavorites.map((recipe) => (
                   <motion.div
                     key={recipe.id}
                     whileHover={{ scale: 1.01 }}
