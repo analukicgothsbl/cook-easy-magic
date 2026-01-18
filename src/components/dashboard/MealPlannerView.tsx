@@ -1028,6 +1028,15 @@ export function MealPlannerView() {
                       <div className="flex-1 flex flex-col justify-between">
                         {recipe ? (
                           <>
+                            {recipeImages[recipe.id] && (
+                              <div className="w-full h-20 rounded-lg overflow-hidden mb-2">
+                                <img
+                                  src={recipeImages[recipe.id]}
+                                  alt={recipe.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
                             <div className="space-y-1">
                               <h5 className="font-medium text-foreground text-sm line-clamp-2">{recipe.title}</h5>
                               <div className="flex items-center gap-3 text-xs text-muted-foreground">
