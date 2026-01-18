@@ -66,8 +66,6 @@ export function GenerateRecipeView() {
   const triggerImageGeneration = async (createdRecipeId: string) => {
     setIsGeneratingImage(true);
     try {
-      console.log("[image] triggering generation for recipe:", createdRecipeId);
-      
       const { error } = await supabase.functions.invoke("generate-recipe-image", {
         body: { recipe_id: createdRecipeId },
       });
@@ -157,7 +155,7 @@ export function GenerateRecipeView() {
         const createdRecipeId = responseData.recipe_id;
         setRecipeId(createdRecipeId);
         setRecipe(responseData.recipe);
-        
+
         // Trigger image generation after recipe is displayed (non-blocking)
         if (createdRecipeId) {
           triggerImageGeneration(createdRecipeId);
