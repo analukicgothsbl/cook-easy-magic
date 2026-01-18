@@ -32,32 +32,32 @@ import type { Json } from "@/integrations/supabase/types";
 
 // Options for meal plan form
 const cuisineOptions = [
-  { id: 'any_surprise_me', label: 'Any – Surprise me' },
-  { id: 'home_style_traditional', label: 'Home-style / Traditional' },
-  { id: 'italian', label: 'Italian' },
-  { id: 'mediterranean', label: 'Mediterranean' },
-  { id: 'mexican', label: 'Mexican' },
-  { id: 'asian', label: 'Asian' },
-  { id: 'balkan', label: 'Balkan' },
-  { id: 'healthy_light', label: 'Healthy – Light' },
-  { id: 'comfort_food', label: 'Comfort food' },
+  { id: "any_surprise_me", label: "Any – Surprise me" },
+  { id: "home_style_traditional", label: "Home-style / Traditional" },
+  { id: "italian", label: "Italian" },
+  { id: "mediterranean", label: "Mediterranean" },
+  { id: "mexican", label: "Mexican" },
+  { id: "asian", label: "Asian" },
+  { id: "balkan", label: "Balkan" },
+  { id: "healthy_light", label: "Healthy – Light" },
+  { id: "comfort_food", label: "Comfort food" },
 ];
 
 const difficultyOptions = [
-  { id: 'easy', label: 'Easy' },
-  { id: 'medium', label: 'Medium' },
-  { id: 'hard', label: 'Hard' },
+  { id: "easy", label: "Easy" },
+  { id: "medium", label: "Medium" },
+  { id: "hard", label: "Hard" },
 ];
 
 const budgetOptions = [
-  { id: 'cheap', label: 'Cheap' },
-  { id: 'normal', label: 'Normal' },
-  { id: 'doesnt_matter', label: "Doesn't matter" },
+  { id: "cheap", label: "Cheap" },
+  { id: "normal", label: "Normal" },
+  { id: "doesnt_matter", label: "Doesn't matter" },
 ];
 
 const kidsFriendlyOptions = [
-  { id: 'yes', label: 'Yes', value: true },
-  { id: 'no', label: 'No', value: false },
+  { id: "yes", label: "Yes", value: true },
+  { id: "no", label: "No", value: false },
 ];
 
 interface UserOptions {
@@ -135,11 +135,11 @@ export function MealPlannerView() {
   const [showMealPlanForm, setShowMealPlanForm] = useState(false);
   const [userOptions, setUserOptions] = useState<UserOptions | null>(null);
   const [mealPlanFormData, setMealPlanFormData] = useState({
-    time_available: '',
-    cuisine: '',
-    difficulty: '',
+    time_available: "",
+    cuisine: "",
+    difficulty: "",
     servings: 2,
-    budget_level: '',
+    budget_level: "",
     kids_friendly: null as boolean | null,
   });
   const [isLoadingUserOptions, setIsLoadingUserOptions] = useState(false);
@@ -173,37 +173,33 @@ export function MealPlannerView() {
   useEffect(() => {
     const fetchUserOptions = async () => {
       if (!showMealPlanForm || !user) return;
-      
+
       setIsLoadingUserOptions(true);
       try {
-        const { data, error } = await supabase
-          .from("user_options")
-          .select("*")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        
+        const { data, error } = await supabase.from("user_options").select("*").eq("user_id", user.id).maybeSingle();
+
         if (error) {
           console.error("Error fetching user options:", error);
         } else if (data) {
           setUserOptions(data);
           // Pre-fill form with user options
           setMealPlanFormData({
-            time_available: data.time_available || '',
-            cuisine: data.cuisine || '',
-            difficulty: data.difficulty || '',
+            time_available: data.time_available || "",
+            cuisine: data.cuisine || "",
+            difficulty: data.difficulty || "",
             servings: data.servings || 2,
-            budget_level: data.budget_level || '',
+            budget_level: data.budget_level || "",
             kids_friendly: data.kids_friendly ?? null,
           });
         } else {
           // No user options, reset form
           setUserOptions(null);
           setMealPlanFormData({
-            time_available: '',
-            cuisine: '',
-            difficulty: '',
+            time_available: "",
+            cuisine: "",
+            difficulty: "",
             servings: 2,
-            budget_level: '',
+            budget_level: "",
             kids_friendly: null,
           });
         }
@@ -225,7 +221,7 @@ export function MealPlannerView() {
   }, [selectedDay]);
 
   // Check if meal plan form is valid
-  const isMealPlanFormValid = 
+  const isMealPlanFormValid =
     mealPlanFormData.time_available &&
     mealPlanFormData.cuisine &&
     mealPlanFormData.difficulty &&
@@ -629,7 +625,7 @@ export function MealPlannerView() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-foreground">{format(selectedDay, "EEEE, MMMM d")}</h3>
                 <div className="flex items-center gap-2">
-                  <Button 
+                  <Button
                     className="rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/90"
                     onClick={() => setShowMealPlanForm(!showMealPlanForm)}
                   >
@@ -655,16 +651,14 @@ export function MealPlannerView() {
                       <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <CreditCard className="w-8 h-8 text-primary" />
                       </div>
-                      <h3 className="text-xl font-bold text-foreground mb-2">
-                        Out of Credits
-                      </h3>
+                      <h3 className="text-xl font-bold text-foreground mb-2">Out of Credits</h3>
                       <p className="text-muted-foreground mb-6">
                         You don't have enough credits. Please add more credits.
                       </p>
                       <motion.button
                         onClick={() => {
                           setSelectedDay(null);
-                          navigate('/dashboard', { state: { view: 'settings', settingsTab: 'credits' } });
+                          navigate("/dashboard", { state: { view: "settings", settingsTab: "credits" } });
                         }}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -687,7 +681,7 @@ export function MealPlannerView() {
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden mb-6"
                   >
-                    <div className="bg-secondary/50 rounded-xl p-6 border border-border">
+                    <div className="max-w-4xl mx-auto bg-secondary/50 rounded-xl p-6 border border-border">
                       {isLoadingUserOptions ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -696,7 +690,9 @@ export function MealPlannerView() {
                         <div className="space-y-6">
                           <div className="text-center mb-4">
                             <h4 className="text-lg font-semibold text-foreground">Customize Your Meal Plan</h4>
-                            <p className="text-sm text-muted-foreground">Set your preferences for AI-generated meal suggestions</p>
+                            <p className="text-sm text-muted-foreground">
+                              Set your preferences for AI-generated meal suggestions
+                            </p>
                           </div>
 
                           {/* Time Available */}
@@ -707,13 +703,13 @@ export function MealPlannerView() {
                             <div className="grid grid-cols-2 gap-3">
                               <motion.button
                                 type="button"
-                                onClick={() => setMealPlanFormData(prev => ({ ...prev, time_available: 'minimum' }))}
+                                onClick={() => setMealPlanFormData((prev) => ({ ...prev, time_available: "minimum" }))}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 className={`flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all duration-200 ${
-                                  mealPlanFormData.time_available === 'minimum'
-                                    ? 'bg-primary text-primary-foreground shadow-md'
-                                    : 'bg-card text-foreground border-2 border-border hover:border-primary/40'
+                                  mealPlanFormData.time_available === "minimum"
+                                    ? "bg-primary text-primary-foreground shadow-md"
+                                    : "bg-card text-foreground border-2 border-border hover:border-primary/40"
                                 }`}
                               >
                                 <Clock className="w-4 h-4" />
@@ -721,13 +717,13 @@ export function MealPlannerView() {
                               </motion.button>
                               <motion.button
                                 type="button"
-                                onClick={() => setMealPlanFormData(prev => ({ ...prev, time_available: 'enough' }))}
+                                onClick={() => setMealPlanFormData((prev) => ({ ...prev, time_available: "enough" }))}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 className={`flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all duration-200 ${
-                                  mealPlanFormData.time_available === 'enough'
-                                    ? 'bg-primary text-primary-foreground shadow-md'
-                                    : 'bg-card text-foreground border-2 border-border hover:border-primary/40'
+                                  mealPlanFormData.time_available === "enough"
+                                    ? "bg-primary text-primary-foreground shadow-md"
+                                    : "bg-card text-foreground border-2 border-border hover:border-primary/40"
                                 }`}
                               >
                                 <Clock className="w-4 h-4" />
@@ -746,13 +742,13 @@ export function MealPlannerView() {
                                 <motion.button
                                   key={option.id}
                                   type="button"
-                                  onClick={() => setMealPlanFormData(prev => ({ ...prev, cuisine: option.id }))}
+                                  onClick={() => setMealPlanFormData((prev) => ({ ...prev, cuisine: option.id }))}
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
                                   className={`pill-button ${
                                     mealPlanFormData.cuisine === option.id
-                                      ? 'pill-button-active'
-                                      : 'pill-button-inactive'
+                                      ? "pill-button-active"
+                                      : "pill-button-inactive"
                                   }`}
                                 >
                                   {option.label}
@@ -771,13 +767,13 @@ export function MealPlannerView() {
                                 <motion.button
                                   key={option.id}
                                   type="button"
-                                  onClick={() => setMealPlanFormData(prev => ({ ...prev, difficulty: option.id }))}
+                                  onClick={() => setMealPlanFormData((prev) => ({ ...prev, difficulty: option.id }))}
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
                                   className={`pill-button ${
                                     mealPlanFormData.difficulty === option.id
-                                      ? 'pill-button-active'
-                                      : 'pill-button-inactive'
+                                      ? "pill-button-active"
+                                      : "pill-button-inactive"
                                   }`}
                                 >
                                   {option.label}
@@ -797,7 +793,9 @@ export function MealPlannerView() {
                                 min={1}
                                 max={20}
                                 value={mealPlanFormData.servings}
-                                onChange={(e) => setMealPlanFormData(prev => ({ ...prev, servings: parseInt(e.target.value) || 2 }))}
+                                onChange={(e) =>
+                                  setMealPlanFormData((prev) => ({ ...prev, servings: parseInt(e.target.value) || 2 }))
+                                }
                                 className="w-24 px-4 py-3 rounded-xl border-2 text-center font-medium transition-all duration-200 bg-card border-border focus:border-primary focus:outline-none"
                               />
                               <span className="text-muted-foreground">people</span>
@@ -814,13 +812,13 @@ export function MealPlannerView() {
                                 <motion.button
                                   key={option.id}
                                   type="button"
-                                  onClick={() => setMealPlanFormData(prev => ({ ...prev, budget_level: option.id }))}
+                                  onClick={() => setMealPlanFormData((prev) => ({ ...prev, budget_level: option.id }))}
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
                                   className={`pill-button ${
                                     mealPlanFormData.budget_level === option.id
-                                      ? 'pill-button-active'
-                                      : 'pill-button-inactive'
+                                      ? "pill-button-active"
+                                      : "pill-button-inactive"
                                   }`}
                                 >
                                   {option.label}
@@ -839,13 +837,15 @@ export function MealPlannerView() {
                                 <motion.button
                                   key={option.id}
                                   type="button"
-                                  onClick={() => setMealPlanFormData(prev => ({ ...prev, kids_friendly: option.value }))}
+                                  onClick={() =>
+                                    setMealPlanFormData((prev) => ({ ...prev, kids_friendly: option.value }))
+                                  }
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
                                   className={`pill-button ${
                                     mealPlanFormData.kids_friendly === option.value
-                                      ? 'pill-button-active'
-                                      : 'pill-button-inactive'
+                                      ? "pill-button-active"
+                                      : "pill-button-inactive"
                                   }`}
                                 >
                                   {option.label}
@@ -861,7 +861,7 @@ export function MealPlannerView() {
                               disabled={!isMealPlanFormValid || isGeneratingMealPlan}
                               onClick={async () => {
                                 if (!selectedDay || !user) return;
-                                
+
                                 setIsGeneratingMealPlan(true);
                                 try {
                                   const payload = {
@@ -872,11 +872,11 @@ export function MealPlannerView() {
                                     budget_level: mealPlanFormData.budget_level || null,
                                     kids_friendly: mealPlanFormData.kids_friendly,
                                   };
-                                  
+
                                   const { data, error } = await supabase.functions.invoke("generate-meal-planner-day", {
                                     body: payload,
                                   });
-                                  
+
                                   if (error) {
                                     console.error("Error generating meal plan:", error);
                                     // Try to parse error context for 402 insufficient credits
@@ -893,22 +893,24 @@ export function MealPlannerView() {
                                     toast.error("Failed to generate meal plan. Please try again.");
                                     return;
                                   }
-                                  
+
                                   if (data?.error === "INSUFFICIENT_CREDITS") {
                                     setShowCreditsError(true);
                                     setShowMealPlanForm(false);
                                     return;
                                   }
-                                  
+
                                   if (data?.error) {
                                     toast.error(data.error);
                                     return;
                                   }
-                                  
+
                                   // Success - refresh meal plan data
-                                  toast.success("Full-day meal plan created! Images are being generated in the background.");
+                                  toast.success(
+                                    "Full-day meal plan created! Images are being generated in the background.",
+                                  );
                                   setShowMealPlanForm(false);
-                                  
+
                                   // Refresh the meal plan data
                                   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
                                   const { data: mealPlanData } = await supabase
@@ -917,42 +919,48 @@ export function MealPlannerView() {
                                     .eq("user_id", user.id)
                                     .gte("plan_date", format(currentWeekStart, "yyyy-MM-dd"))
                                     .lte("plan_date", format(weekEnd, "yyyy-MM-dd"));
-                                  
+
                                   if (mealPlanData) {
                                     // Fetch the new recipes
-                                    const recipeIds = mealPlanData.map(m => m.recipe_id).filter((id): id is string => id !== null);
+                                    const recipeIds = mealPlanData
+                                      .map((m) => m.recipe_id)
+                                      .filter((id): id is string => id !== null);
                                     if (recipeIds.length > 0) {
                                       const { data: recipesData } = await supabase
                                         .from("recipe")
                                         .select("*")
                                         .in("id", recipeIds);
-                                      
+
                                       const recipeMap = new Map(
-                                        (recipesData || []).map(r => [r.id, {
-                                          id: r.id,
-                                          title: r.title,
-                                          description_short: r.description_short || undefined,
-                                          description_long: r.description_long || undefined,
-                                          meal_category: r.meal_category || undefined,
-                                          time_minutes: r.time_minutes || undefined,
-                                          cuisine: r.cuisine || undefined,
-                                          servings: r.servings || undefined,
-                                          difficulty: r.difficulty || undefined,
-                                          budget_level: r.budget_level || undefined,
-                                          kids_friendly: r.kids_friendly || undefined,
-                                          ingredients: (r.ingredients || []) as (string | Ingredient)[],
-                                          instructions: r.instructions ? [r.instructions] : [],
-                                          tips: r.tips || undefined,
-                                          nutrition_estimate: r.nutrition_estimate as unknown as Recipe["nutrition_estimate"],
-                                          created_at: r.created_at,
-                                        } as RecipeWithMeta])
+                                        (recipesData || []).map((r) => [
+                                          r.id,
+                                          {
+                                            id: r.id,
+                                            title: r.title,
+                                            description_short: r.description_short || undefined,
+                                            description_long: r.description_long || undefined,
+                                            meal_category: r.meal_category || undefined,
+                                            time_minutes: r.time_minutes || undefined,
+                                            cuisine: r.cuisine || undefined,
+                                            servings: r.servings || undefined,
+                                            difficulty: r.difficulty || undefined,
+                                            budget_level: r.budget_level || undefined,
+                                            kids_friendly: r.kids_friendly || undefined,
+                                            ingredients: (r.ingredients || []) as (string | Ingredient)[],
+                                            instructions: r.instructions ? [r.instructions] : [],
+                                            tips: r.tips || undefined,
+                                            nutrition_estimate:
+                                              r.nutrition_estimate as unknown as Recipe["nutrition_estimate"],
+                                            created_at: r.created_at,
+                                          } as RecipeWithMeta,
+                                        ]),
                                       );
-                                      
+
                                       const formattedMealPlan: MealPlanEntry[] = mealPlanData.map((entry) => ({
                                         ...entry,
                                         recipe: recipeMap.get(entry.recipe_id || "") as RecipeWithMeta | undefined,
                                       }));
-                                      
+
                                       setMealPlan(formattedMealPlan);
                                     }
                                   }
@@ -990,7 +998,10 @@ export function MealPlannerView() {
                   const recipe = meal?.recipe;
 
                   return (
-                    <div key={slot.id} className="bg-card rounded-xl p-4 shadow-sm border border-border flex flex-col min-h-[160px]">
+                    <div
+                      key={slot.id}
+                      className="bg-card rounded-xl p-4 shadow-sm border border-border flex flex-col min-h-[160px]"
+                    >
                       {/* Header: Icon + Label + Delete */}
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
