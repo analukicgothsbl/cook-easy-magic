@@ -621,7 +621,7 @@ export function MealPlannerView() {
             exit={{ opacity: 0, height: 0 }}
             className="mt-6 overflow-hidden"
           >
-            <div className="card-warm p-6">
+            <div className="max-w-4xl mx-auto card-warm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-foreground">{format(selectedDay, "EEEE, MMMM d")}</h3>
                 <div className="flex items-center gap-2">
@@ -679,7 +679,7 @@ export function MealPlannerView() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="max-w-4xl mx-auto overflow-hidden mb-6"
+                    className="overflow-hidden mb-6"
                   >
                     <div className="bg-secondary/50 rounded-xl p-6 border border-border">
                       {isLoadingUserOptions ? (
