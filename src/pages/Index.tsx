@@ -44,12 +44,14 @@ const Index = () => {
   };
 
   // Non-blocking image generation after recipe is created
-  const triggerImageGeneration = async (createdRecipeId: string) => {
-    if (!isLoggedIn) return; // Only generate images for logged-in users
+  const triggerImageGeneration = async (createdRecipeId: string, silent: boolean = false) => {
+    // For guests (silent=true), trigger in background without UI state changes
+    if (!silent) {
+      setIsGeneratingImage(true);
+    }
     
-    setIsGeneratingImage(true);
     try {
-      console.log('[image] triggering generation for recipe:', createdRecipeId);
+      console.log('[image] triggering generation for recipe:', createdRecipeId, silent ? '(silent/guest)' : '');
       
       const { error } = await supabase.functions.invoke('generate-recipe-image', {
         body: { recipe_id: createdRecipeId },
@@ -65,7 +67,9 @@ const Index = () => {
       console.error('[image] unexpected error:', err);
       // Non-fatal - recipe is still visible
     } finally {
-      setIsGeneratingImage(false);
+      if (!silent) {
+        setIsGeneratingImage(false);
+      }
     }
   };
 
@@ -170,8 +174,10 @@ const Index = () => {
         setRecipe(responseData.recipe);
         
         // Trigger image generation after recipe is displayed (non-blocking)
-        if (createdRecipeId && isLoggedIn) {
-          triggerImageGeneration(createdRecipeId);
+        // For logged-in users: normal flow with UI updates
+        // For guests: silent background generation (image saved for Open Library)
+        if (createdRecipeId) {
+          triggerImageGeneration(createdRecipeId, !isLoggedIn);
         }
       } else {
         setErrorMsg('Failed to generate recipe. Please try again.');
