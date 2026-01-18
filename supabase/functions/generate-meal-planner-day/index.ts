@@ -103,11 +103,11 @@ const SLOT_TO_CATEGORY: Record<string, string> = {
   breakfast: "breakfast",
   snack_morning: "snack",
   lunch: "lunch",
-  snack_afternoon: "snack",
+  dessert: "dessert",
   dinner: "dinner",
 };
 
-const VALID_SLOTS = ["breakfast", "snack_morning", "lunch", "snack_afternoon", "dinner"];
+const VALID_SLOTS = ["breakfast", "snack_morning", "lunch", "dessert", "dinner"];
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -400,13 +400,14 @@ Deno.serve(async (req) => {
     const kidsFriendlyLabel = payload.kids_friendly ? "kid-friendly" : "for adults";
     const servingsCount = payload.servings || 2;
 
-    const systemPrompt = `You are a professional chef and meal planner. Generate a complete Full-Day Meal Plan with exactly 5 recipes for the following meal slots: breakfast, snack_morning, lunch, snack_afternoon, dinner.
+    const systemPrompt = `You are a professional chef and meal planner. Generate a complete Full-Day Meal Plan with exactly 5 recipes for the following meal slots: breakfast, snack_morning, lunch, dessert, dinner.
 
 Important constraints:
 - No repeated main dish type (e.g., not pasta twice)
 - Balanced day (protein + veggies + carbs across the day)
 - Shared prep allowed but max 1-2 overlapping ingredients across recipes
-- Snacks (snack_morning and snack_afternoon) MUST be light & quick (≤10 minutes prep time)
+- snack_morning MUST be light & quick (≤10 minutes prep time)
+- dessert should be a sweet treat or light dessert
 
 Respond ONLY with a valid JSON object (no markdown, no extra text) with this exact structure:
 {
@@ -442,10 +443,10 @@ Meal category mapping:
 - breakfast → "breakfast"
 - snack_morning → "snack"
 - lunch → "lunch"
-- snack_afternoon → "snack"
+- dessert → "dessert"
 - dinner → "dinner"
 
-You MUST include all 5 recipes in the exact order: breakfast, snack_morning, lunch, snack_afternoon, dinner.`;
+You MUST include all 5 recipes in the exact order: breakfast, snack_morning, lunch, dessert, dinner.`;
 
     const userPrompt = `Create a Full-Day Meal Plan with these preferences:
 
@@ -457,8 +458,9 @@ You MUST include all 5 recipes in the exact order: breakfast, snack_morning, lun
 - ${kidsFriendlyLabel}
 
 Remember:
-- Generate exactly 5 recipes for: breakfast, snack_morning, lunch, snack_afternoon, dinner
-- Snacks must be ≤10 minutes prep time
+- Generate exactly 5 recipes for: breakfast, snack_morning, lunch, dessert, dinner
+- Morning snack must be ≤10 minutes prep time
+- Dessert should be a sweet treat or light dessert
 - Ensure variety and nutritional balance across the day`;
 
     // -------------------- Call OpenAI --------------------
@@ -513,9 +515,9 @@ Remember:
       );
     }
 
-    // Validate snacks have time_minutes <= 10
+    // Validate morning snack has time_minutes <= 10
     for (const recipe of mealPlan.recipes) {
-      if ((recipe.meal_slot === "snack_morning" || recipe.meal_slot === "snack_afternoon") && recipe.time_minutes > 10) {
+      if (recipe.meal_slot === "snack_morning" && recipe.time_minutes > 10) {
         console.warn("[validation] snack has time > 10 minutes, adjusting", {
           slot: recipe.meal_slot,
           time: recipe.time_minutes,
