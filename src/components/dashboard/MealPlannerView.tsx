@@ -831,6 +831,16 @@ export function MealPlannerView() {
                                   
                                   if (error) {
                                     console.error("Error generating meal plan:", error);
+                                    // Try to parse error context for 402 insufficient credits
+                                    try {
+                                      const errorContext = JSON.parse(error.context?.body || "{}");
+                                      if (errorContext.error === "INSUFFICIENT_CREDITS") {
+                                        toast.error(`Not enough credits. You need at least ${errorContext.min_required} credits (you have ${errorContext.available.toFixed(2)}).`);
+                                        return;
+                                      }
+                                    } catch {
+                                      // Not a JSON error, continue with generic message
+                                    }
                                     toast.error("Failed to generate meal plan. Please try again.");
                                     return;
                                   }
