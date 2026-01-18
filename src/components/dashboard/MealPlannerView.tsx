@@ -1125,7 +1125,7 @@ export function MealPlannerView() {
                       <div className="flex-1 flex flex-col justify-between">
                         {recipe ? (
                           <>
-                            <div className="w-full h-30 rounded-lg overflow-hidden mb-2 relative">
+                            <div className="w-full h-32 rounded-lg overflow-hidden mb-2 relative">
                               {recipeImages[recipe.id] ? (
                                 <img
                                   src={recipeImages[recipe.id]}
