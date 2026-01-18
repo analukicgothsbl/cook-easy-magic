@@ -622,7 +622,7 @@ export function MealPlannerView() {
             className="mt-6 overflow-hidden"
           >
             <div className="card-warm p-6">
-              <div className="flex items-center justify-between mb-4 px-4">
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-foreground">{format(selectedDay, "EEEE, MMMM d")}</h3>
                 <div className="flex items-center gap-2">
                   <Button
