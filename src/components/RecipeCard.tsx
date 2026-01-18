@@ -219,8 +219,9 @@ export const RecipeCard = ({
 
     let isMounted = true;
     let pollCount = 0;
-    const maxPolls = 30; // Poll for up to 30 seconds
+    const maxPolls = 60; // Poll for up to 60 seconds
     const pollInterval = 1000; // Poll every second
+    let intervalId: NodeJS.Timeout | null = null;
 
     const fetchImage = async () => {
       try {
@@ -236,6 +237,7 @@ export const RecipeCard = ({
         }
 
         if (data?.image_url && isMounted) {
+          console.log("[RecipeCard] Image found for recipe:", recipeId);
           setRecipeImageUrl(data.image_url);
           setIsLoadingImage(false);
           return true; // Image found
@@ -249,31 +251,37 @@ export const RecipeCard = ({
 
     const pollForImage = async () => {
       setIsLoadingImage(true);
+      setRecipeImageUrl(null);
 
       // First immediate check
       const found = await fetchImage();
       if (found) return;
 
       // Start polling
-      const interval = setInterval(async () => {
+      intervalId = setInterval(async () => {
         pollCount++;
         const found = await fetchImage();
 
         if (found || pollCount >= maxPolls) {
-          clearInterval(interval);
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
           if (!found && isMounted) {
+            console.log("[RecipeCard] Polling stopped - no image found after", pollCount, "polls");
             setIsLoadingImage(false);
           }
         }
       }, pollInterval);
-
-      return () => clearInterval(interval);
     };
 
     pollForImage();
 
     return () => {
       isMounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
   }, [recipeId, isLoggedIn, isLoading]);
 
