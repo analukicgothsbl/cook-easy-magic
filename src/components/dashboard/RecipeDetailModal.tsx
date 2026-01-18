@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, ChefHat, X, Flame, Download, Copy, Check, ImageIcon, Loader2 } from 'lucide-react';
-import type { Recipe } from '@/components/RecipeCard';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock, Users, ChefHat, X, Flame, Download, Copy, Check, ImageIcon, Loader2 } from "lucide-react";
+import type { Recipe } from "@/components/RecipeCard";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 interface RecipeWithMeta extends Recipe {
   id: string;
   created_at: string;
@@ -107,22 +107,22 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
   }, [recipe?.id, recipe?.image_url]);
 
   const formatIngredient = (ing: string | Ingredient): string => {
-    if (typeof ing === 'string') return ing;
+    if (typeof ing === "string") return ing;
     return `${ing.quantity} ${ing.unit} ${ing.name}`.trim();
   };
 
   const formatCuisine = (cuisine: string | undefined): string => {
-    if (!cuisine) return '';
+    if (!cuisine) return "";
     const cuisineMap: Record<string, string> = {
-      any_surprise_me: 'Any',
-      home_style_traditional: 'Traditional',
-      italian: 'Italian',
-      mediterranean: 'Mediterranean',
-      mexican: 'Mexican',
-      asian: 'Asian',
-      balkan: 'Balkan',
-      healthy_light: 'Healthy Light',
-      comfort_food: 'Comfort Food',
+      any_surprise_me: "Any",
+      home_style_traditional: "Traditional",
+      italian: "Italian",
+      mediterranean: "Mediterranean",
+      mexican: "Mexican",
+      asian: "Asian",
+      balkan: "Balkan",
+      healthy_light: "Healthy Light",
+      comfort_food: "Comfort Food",
     };
     return cuisineMap[cuisine] || cuisine;
   };
@@ -130,38 +130,41 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
   // Parse instructions - handle both string and array formats
   const getInstructions = (): string[] => {
     if (!recipe?.instructions) return [];
-    
+
     // If it's already an array with proper steps
     if (Array.isArray(recipe.instructions)) {
       // Check if it's a single string that needs splitting
-      if (recipe.instructions.length === 1 && typeof recipe.instructions[0] === 'string') {
+      if (recipe.instructions.length === 1 && typeof recipe.instructions[0] === "string") {
         const text = recipe.instructions[0];
         // Try to split by numbered pattern (1. or 1) or newlines)
-        const steps = text.split(/(?:\d+\.\s*|\d+\)\s*|\n)+/).filter(s => s.trim());
+        const steps = text.split(/(?:\d+\.\s*|\d+\)\s*|\n)+/).filter((s) => s.trim());
         if (steps.length > 1) return steps;
         // Split by periods followed by capital letter
-        return text.split(/\.\s+(?=[A-Z])/).filter(s => s.trim()).map(s => s.endsWith('.') ? s : s + '.');
+        return text
+          .split(/\.\s+(?=[A-Z])/)
+          .filter((s) => s.trim())
+          .map((s) => (s.endsWith(".") ? s : s + "."));
       }
-      return recipe.instructions.filter(s => s && typeof s === 'string' && s.trim());
+      return recipe.instructions.filter((s) => s && typeof s === "string" && s.trim());
     }
-    
+
     return [];
   };
 
   const instructions = getInstructions();
 
   const getRecipeTextContent = () => {
-    if (!recipe) return '';
-    
+    if (!recipe) return "";
+
     const cuisineDisplay = formatCuisine(recipe.cuisine);
-    
+
     let content = `${recipe.title}\n`;
-    content += `${'='.repeat(recipe.title.length)}\n\n`;
-    
+    content += `${"=".repeat(recipe.title.length)}\n\n`;
+
     if (recipe.description_short) {
       content += `${recipe.description_short}\n\n`;
     }
-    
+
     // Meta info
     const metaParts: string[] = [];
     if (recipe.meal_category) metaParts.push(`Meal: ${recipe.meal_category}`);
@@ -170,9 +173,9 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
     if (recipe.difficulty) metaParts.push(`Difficulty: ${recipe.difficulty}`);
     if (cuisineDisplay) metaParts.push(`Cuisine: ${cuisineDisplay}`);
     if (metaParts.length > 0) {
-      content += metaParts.join(' | ') + '\n\n';
+      content += metaParts.join(" | ") + "\n\n";
     }
-    
+
     // Nutrition
     if (recipe.nutrition_estimate) {
       content += `Nutrition (per serving):\n`;
@@ -181,7 +184,7 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
       content += `  Carbs: ${recipe.nutrition_estimate.carbs}\n`;
       content += `  Fat: ${recipe.nutrition_estimate.fat}\n\n`;
     }
-    
+
     // Ingredients
     if (recipe.ingredients && recipe.ingredients.length > 0) {
       content += `Ingredients:\n`;
@@ -191,7 +194,7 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
       });
       content += `\n`;
     }
-    
+
     // Instructions
     if (instructions.length > 0) {
       content += `Instructions:\n`;
@@ -201,27 +204,27 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
       });
       content += `\n`;
     }
-    
+
     // Tips
     if (recipe.tips) {
       content += `Pro Tip:\n`;
       content += `--------\n`;
       content += `${recipe.tips}\n`;
     }
-    
+
     return content;
   };
 
   const handleDownloadTxt = () => {
     const content = getRecipeTextContent();
     if (!content || !recipe) return;
-    
+
     // Create and download file
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `${recipe.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+    link.download = `${recipe.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -231,13 +234,13 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
   const handleCopyToClipboard = async () => {
     const content = getRecipeTextContent();
     if (!content) return;
-    
+
     try {
       await navigator.clipboard.writeText(content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy recipe:', err);
+      console.error("Failed to copy recipe:", err);
     }
   };
 
@@ -261,16 +264,13 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
         >
           {/* Header with just X button */}
           <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-end z-10">
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-muted rounded-full transition-colors"
-            >
+            <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Recipe Image */}
-          <div className="relative h-48 sm:h-64 overflow-hidden">
+          <div className="relative h-80 sm:h-96 overflow-hidden">
             {imageUrl ? (
               <img src={imageUrl} alt={recipe.title} className="w-full h-full object-cover" />
             ) : isLoadingImage ? (
@@ -302,11 +302,9 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                 {headerIcon}
                 {recipe.title}
               </h2>
-              
+
               {/* Short Description */}
-              {recipe.description_short && (
-                <p className="text-muted-foreground">{recipe.description_short}</p>
-              )}
+              {recipe.description_short && <p className="text-muted-foreground">{recipe.description_short}</p>}
             </div>
 
             {/* Meta Row - matching screenshot style */}
@@ -335,9 +333,7 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                 </span>
               )}
               {recipe.cuisine && (
-                <span className="text-muted-foreground capitalize">
-                  {formatCuisine(recipe.cuisine)}
-                </span>
+                <span className="text-muted-foreground capitalize">{formatCuisine(recipe.cuisine)}</span>
               )}
             </div>
 
@@ -348,15 +344,9 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                   <Flame className="w-4 h-4 text-primary" />
                   <strong>{recipe.nutrition_estimate.calories}</strong> kcal
                 </span>
-                <span className="text-sm text-muted-foreground">
-                  Protein: {recipe.nutrition_estimate.protein}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  Carbs: {recipe.nutrition_estimate.carbs}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  Fat: {recipe.nutrition_estimate.fat}
-                </span>
+                <span className="text-sm text-muted-foreground">Protein: {recipe.nutrition_estimate.protein}</span>
+                <span className="text-sm text-muted-foreground">Carbs: {recipe.nutrition_estimate.carbs}</span>
+                <span className="text-sm text-muted-foreground">Fat: {recipe.nutrition_estimate.fat}</span>
               </div>
             )}
 
@@ -439,7 +429,7 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{copied ? 'Copied!' : 'Copy to clipboard'}</p>
+                      <p>{copied ? "Copied!" : "Copy to clipboard"}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
