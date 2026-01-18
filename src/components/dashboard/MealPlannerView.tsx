@@ -679,9 +679,9 @@ export function MealPlannerView() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden mb-6"
+                    className="max-w-4xl mx-auto overflow-hidden mb-6"
                   >
-                    <div className="max-w-4xl mx-auto bg-secondary/50 rounded-xl p-6 border border-border">
+                    <div className="bg-secondary/50 rounded-xl p-6 border border-border">
                       {isLoadingUserOptions ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader2 className="w-6 h-6 animate-spin text-primary" />
