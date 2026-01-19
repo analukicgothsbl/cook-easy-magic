@@ -13,10 +13,10 @@ Deno.serve(async (req) => {
 
   try {
     // Verify cron secret for security
-    const authHeader = req.headers.get('Authorization')
+    const cronSecretHeader = req.headers.get('x-cron-secret')
     const cronSecret = Deno.env.get('CRON_SECRET')
     
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (cronSecret && cronSecretHeader !== cronSecret) {
       console.log('Unauthorized access attempt to reset-credit-bonus')
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
