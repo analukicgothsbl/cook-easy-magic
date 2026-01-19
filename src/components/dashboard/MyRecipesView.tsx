@@ -340,54 +340,54 @@ export function MyRecipesView() {
       {/* Header with Subheading and Filters */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <p className="text-muted-foreground">All recipes you've personally generated with CookMaster</p>
-        
+
         {/* Filter Options */}
         <div className="flex flex-wrap items-center gap-3">
-        {/* Meal Category Filter */}
-        <Select value={mealFilter} onValueChange={(value: MealCategoryFilter) => setMealFilter(value)}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Meal Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Meals</SelectItem>
-            <SelectItem value="breakfast">Breakfast</SelectItem>
-            <SelectItem value="lunch">Lunch</SelectItem>
-            <SelectItem value="dinner">Dinner</SelectItem>
-            <SelectItem value="dessert">Dessert</SelectItem>
-            <SelectItem value="snack">Snack</SelectItem>
-          </SelectContent>
-        </Select>
+          {/* Meal Category Filter */}
+          <Select value={mealFilter} onValueChange={(value: MealCategoryFilter) => setMealFilter(value)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Meal Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Meals</SelectItem>
+              <SelectItem value="breakfast">Breakfast</SelectItem>
+              <SelectItem value="lunch">Lunch</SelectItem>
+              <SelectItem value="dinner">Dinner</SelectItem>
+              <SelectItem value="dessert">Dessert</SelectItem>
+              <SelectItem value="snack">Snack</SelectItem>
+            </SelectContent>
+          </Select>
 
-        {/* Cuisine Filter */}
-        <Select value={cuisineFilter} onValueChange={(value: CuisineFilter) => setCuisineFilter(value)}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Cuisine" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Cuisines</SelectItem>
-            <SelectItem value="any_surprise_me">Any</SelectItem>
-            <SelectItem value="home_style_traditional">Traditional</SelectItem>
-            <SelectItem value="italian">Italian</SelectItem>
-            <SelectItem value="mediterranean">Mediterranean</SelectItem>
-            <SelectItem value="mexican">Mexican</SelectItem>
-            <SelectItem value="asian">Asian</SelectItem>
-            <SelectItem value="balkan">Balkan</SelectItem>
-            <SelectItem value="healthy_light">Healthy Light</SelectItem>
-            <SelectItem value="comfort_food">Comfort Food</SelectItem>
-          </SelectContent>
-        </Select>
+          {/* Cuisine Filter */}
+          <Select value={cuisineFilter} onValueChange={(value: CuisineFilter) => setCuisineFilter(value)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Cuisine" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Cuisines</SelectItem>
+              <SelectItem value="any_surprise_me">Any</SelectItem>
+              <SelectItem value="home_style_traditional">Traditional</SelectItem>
+              <SelectItem value="italian">Italian</SelectItem>
+              <SelectItem value="mediterranean">Mediterranean</SelectItem>
+              <SelectItem value="mexican">Mexican</SelectItem>
+              <SelectItem value="asian">Asian</SelectItem>
+              <SelectItem value="balkan">Balkan</SelectItem>
+              <SelectItem value="healthy_light">Healthy Light</SelectItem>
+              <SelectItem value="comfort_food">Comfort Food</SelectItem>
+            </SelectContent>
+          </Select>
 
-        {/* Cooking Time Sort */}
-        <Select value={timeSort} onValueChange={(value: TimeSort) => setTimeSort(value)}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Cooking Time" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Newest First</SelectItem>
-            <SelectItem value="asc">Time: Low to High</SelectItem>
-            <SelectItem value="desc">Time: High to Low</SelectItem>
-          </SelectContent>
-        </Select>
+          {/* Cooking Time Sort */}
+          <Select value={timeSort} onValueChange={(value: TimeSort) => setTimeSort(value)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Cooking Time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Newest First</SelectItem>
+              <SelectItem value="asc">Time: Low to High</SelectItem>
+              <SelectItem value="desc">Time: High to Low</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -427,7 +427,7 @@ export function MyRecipesView() {
                     <ImagePlus className="w-4 h-4" />
                   )}
                   <span className="ml-1 text-xs">
-                    {generatingImageFor === recipe.id ? "Generating..." : "Generate"}
+                    {generatingImageFor === recipe.id ? "Generating..." : "Generate OpenAI"}
                   </span>
                 </Button>
               )}
