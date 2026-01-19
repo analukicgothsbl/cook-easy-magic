@@ -386,24 +386,39 @@ export function LibraryView() {
               ) : (
                 <ChefHat className="w-12 h-12 text-primary/40" />
               )}
-              {/* Admin Generate Image Button */}
+              {/* Admin Generate Image Buttons */}
               {isAdmin && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                  onClick={(e) => generateImage(e, recipe.id)}
-                  disabled={generatingImageFor === recipe.id}
-                >
-                  {generatingImageFor === recipe.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
+                <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="shadow-lg"
+                    onClick={(e) => generateImage(e, recipe.id)}
+                    disabled={generatingImageFor === recipe.id}
+                  >
+                    {generatingImageFor === recipe.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="w-4 h-4" />
+                    )}
+                    <span className="ml-1 text-xs">
+                      {generatingImageFor === recipe.id ? "Generating..." : "Generate OpenAI"}
+                    </span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="shadow-lg"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // TODO: Connect to Gemini generation function
+                      console.log("Generate Gemini for recipe:", recipe.id);
+                    }}
+                  >
                     <ImagePlus className="w-4 h-4" />
-                  )}
-                  <span className="ml-1 text-xs">
-                    {generatingImageFor === recipe.id ? "Generating..." : "Generate OpenAI"}
-                  </span>
-                </Button>
+                    <span className="ml-1 text-xs">Generate Gemini</span>
+                  </Button>
+                </div>
               )}
             </div>
 
