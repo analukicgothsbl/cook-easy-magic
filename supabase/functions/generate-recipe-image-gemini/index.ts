@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-    const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash-exp";
+    const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3-pro-image";
 
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY || !GEMINI_API_KEY) {
       console.error("[generate-recipe-image-gemini] Missing env vars", { requestId });
@@ -168,16 +168,21 @@ Key ingredients: ${typeof ingredients === "string" ? ingredients : JSON.stringif
           body: JSON.stringify({
             contents: [
               {
-                parts: [
-                  {
-                    text: imagePrompt,
-                  },
-                ],
+                parts: [{ text: imagePrompt }],
               },
             ],
             generationConfig: {
-              responseModalities: ["TEXT", "IMAGE"],
+              // Changed to IMAGE only to focus the model's "brain" on the visual
+              responseModalities: ["IMAGE"],
+              // imageConfig ensures the 1024x1024 resolution and counts as 2 credits
+              imageConfig: {
+                aspectRatio: "1:1",
+                imageSize: "1K", // Explicitly sets 1024x1024 resolution
+                addWatermark: false, // Ensure no watermarks are added at the engine level
+              },
             },
+            // Added safetySettings to prevent accidental blocks on food "blood" (berry juice)
+            safetySettings: [{ category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" }],
           }),
         },
       );
@@ -194,23 +199,27 @@ Key ingredients: ${typeof ingredients === "string" ? ingredients : JSON.stringif
 
       const geminiData = await geminiResponse.json();
 
-      // Extract image from Gemini response
-      // Response structure: { candidates: [{ content: { parts: [{ inlineData: { mimeType, data } }] } }] }
-      const parts = geminiData?.candidates?.[0]?.content?.parts;
+      // 1. Check if candidates exist (Safety filters can sometimes block the response)
+      if (!geminiData.candidates || geminiData.candidates.length === 0) {
+        console.error("[generate-recipe-image-gemini] No candidates found. Check safety ratings.", { geminiData });
+        throw new Error("Gemini safety filters may have blocked this image.");
+      }
+
+      const parts = geminiData.candidates[0].content?.parts;
 
       if (!parts || !Array.isArray(parts)) {
-        console.error("[generate-recipe-image-gemini] No parts in response", { requestId, geminiData });
-        throw new Error("No parts in Gemini response");
+        throw new Error("No parts found in the Gemini response.");
       }
 
-      // Find the image part
-      const imagePart = parts.find((part: { inlineData?: { mimeType: string; data: string } }) => part.inlineData);
+      // 2. Look for the part containing 'inlineData' (the actual image)
+      const imagePart = parts.find((part) => part.inlineData);
 
-      if (!imagePart?.inlineData?.data) {
-        console.error("[generate-recipe-image-gemini] No image data in response", { requestId, parts });
-        throw new Error("No image data in Gemini response");
+      if (!imagePart) {
+        console.error("[generate-recipe-image-gemini] No inlineData found in parts", { parts });
+        throw new Error("The model did not return image data.");
       }
 
+      // 3. Store the Base64 string
       b64Image = imagePart.inlineData.data;
 
       console.log("[generate-recipe-image-gemini] Image generated successfully", {
