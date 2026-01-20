@@ -107,11 +107,7 @@ Deno.serve(async (req) => {
 
     if (isGuestRequest) {
       // For guest requests, just verify the recipe exists
-      const { data: recipeExists } = await adminClient
-        .from("recipe")
-        .select("id")
-        .eq("id", recipe_id)
-        .maybeSingle();
+      const { data: recipeExists } = await adminClient.from("recipe").select("id").eq("id", recipe_id).maybeSingle();
 
       if (!recipeExists) {
         console.error("[generate-recipe-image] Guest request: recipe not found", {
@@ -198,7 +194,7 @@ Key ingredients: ${typeof ingredients === "string" ? ingredients : JSON.stringif
 
     try {
       const img = await openai.images.generate({
-        model: "gpt-image-1-mini",
+        model: "gpt-image-1",
         prompt: imagePrompt,
         size: "1024x1024",
       });
