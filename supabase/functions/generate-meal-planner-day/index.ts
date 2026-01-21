@@ -84,7 +84,7 @@ function calcCostUsd(inputTokens: number, outputTokens: number) {
 }
 
 // Minimum credits required for meal plan generation (precheck)
-const MIN_CREDITS_REQUIRED = 4;
+const MIN_CREDITS_REQUIRED = 2.9;
 
 // Max tokens for estimation
 const MAX_OUTPUT_TOKENS = 4000; // Higher for 5 recipes
@@ -125,10 +125,10 @@ Deno.serve(async (req) => {
 
     if (!supabaseUrl || !supabaseServiceKey || !openaiApiKey) {
       console.error("[generate-meal-planner-day] Missing env vars", { requestId });
-      return new Response(
-        JSON.stringify({ error: "Server misconfigured", request_id: requestId }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Server misconfigured", request_id: requestId }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -339,7 +339,10 @@ Deno.serve(async (req) => {
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.replace("Bearer ", "");
       try {
-        const { data: { user }, error } = await supabase.auth.getUser(token);
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser(token);
         if (error) {
           console.error("[auth] getUser error:", error.message, { requestId });
         }
@@ -354,10 +357,10 @@ Deno.serve(async (req) => {
 
     if (!userId) {
       console.log("[auth] unauthorized - no valid user", { requestId });
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // -------------------- Parse request body --------------------
@@ -370,10 +373,10 @@ Deno.serve(async (req) => {
       creditSnapshot = await readCreditSnapshotOnce(userId);
     } catch (e) {
       console.error("[credits] precheck snapshot error", e, { requestId });
-      return new Response(
-        JSON.stringify({ error: "Could not verify credit balance" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Could not verify credit balance" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (creditSnapshot.totalAvailable < MIN_CREDITS_REQUIRED) {
@@ -388,13 +391,16 @@ Deno.serve(async (req) => {
           min_required: MIN_CREDITS_REQUIRED,
           available: creditSnapshot.totalAvailable,
         }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     // -------------------- Build prompts --------------------
     const cuisineLabel = payload.cuisine === "any_surprise_me" ? "any cuisine (surprise me)" : payload.cuisine || "any";
-    const timeLabel = payload.time_available === "minimum" ? "quick (under 20 minutes for main meals, snacks under 10 minutes)" : "normal cooking time";
+    const timeLabel =
+      payload.time_available === "minimum"
+        ? "quick (under 20 minutes for main meals, snacks under 10 minutes)"
+        : "normal cooking time";
     const difficultyLabel = payload.difficulty || "any difficulty";
     const budgetLabel = payload.budget_level || "normal budget";
     const kidsFriendlyLabel = payload.kids_friendly ? "kid-friendly" : "for adults";
@@ -486,10 +492,10 @@ Remember:
       mealPlan = JSON.parse(cleanedResponse);
     } catch {
       console.error("[openai] failed to parse meal plan JSON", responseText.substring(0, 500), { requestId });
-      return new Response(
-        JSON.stringify({ error: "MODEL_JSON_PARSE_FAILED" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "MODEL_JSON_PARSE_FAILED" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Validate: must have exactly 5 recipes
@@ -498,21 +504,21 @@ Remember:
         count: mealPlan.recipes?.length,
         requestId,
       });
-      return new Response(
-        JSON.stringify({ error: "MODEL_JSON_PARSE_FAILED", detail: "Expected 5 recipes" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "MODEL_JSON_PARSE_FAILED", detail: "Expected 5 recipes" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Validate meal slots
-    const receivedSlots = mealPlan.recipes.map(r => r.meal_slot);
-    const allSlotsValid = receivedSlots.every(slot => VALID_SLOTS.includes(slot));
+    const receivedSlots = mealPlan.recipes.map((r) => r.meal_slot);
+    const allSlotsValid = receivedSlots.every((slot) => VALID_SLOTS.includes(slot));
     if (!allSlotsValid) {
       console.error("[validation] invalid meal slots", { receivedSlots, requestId });
-      return new Response(
-        JSON.stringify({ error: "MODEL_JSON_PARSE_FAILED", detail: "Invalid meal slots" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "MODEL_JSON_PARSE_FAILED", detail: "Invalid meal slots" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Validate morning snack has time_minutes <= 10
@@ -552,7 +558,14 @@ Remember:
     }
 
     // -------------------- Insert recipes and meal plan --------------------
-    const createdRecipes: Array<{ meal_slot: string; recipe_id: string; title: string; meal_category: string; time_minutes: number; servings: number }> = [];
+    const createdRecipes: Array<{
+      meal_slot: string;
+      recipe_id: string;
+      title: string;
+      meal_category: string;
+      time_minutes: number;
+      servings: number;
+    }> = [];
     const perRecipeCost = totalCostUsd / 5;
 
     for (const recipe of mealPlan.recipes) {
@@ -587,10 +600,10 @@ Remember:
 
       if (insertError) {
         console.error("[db] error inserting recipe", insertError, { slot: recipe.meal_slot, requestId });
-        return new Response(
-          JSON.stringify({ error: "Failed to save recipe" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Failed to save recipe" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const recipeId = insertedRecipe.id;
@@ -601,7 +614,7 @@ Remember:
         .from("recipe_user")
         .upsert(
           { user_id: userId, recipe_id: recipeId, created_at: new Date().toISOString() },
-          { onConflict: "user_id,recipe_id" }
+          { onConflict: "user_id,recipe_id" },
         );
 
       if (linkError) {
@@ -614,7 +627,7 @@ Remember:
         .from("recipe_favorites")
         .upsert(
           { user_id: userId, recipe_id: recipeId, created_at: new Date().toISOString() },
-          { onConflict: "user_id,recipe_id" }
+          { onConflict: "user_id,recipe_id" },
         );
 
       if (favError) {
@@ -623,14 +636,12 @@ Remember:
       }
 
       // Insert meal plan entry
-      const { error: mealPlanError } = await supabase
-        .from("meal_plan")
-        .insert({
-          user_id: userId,
-          plan_date: targetDate,
-          meal_slot: recipe.meal_slot,
-          recipe_id: recipeId,
-        });
+      const { error: mealPlanError } = await supabase.from("meal_plan").insert({
+        user_id: userId,
+        plan_date: targetDate,
+        meal_slot: recipe.meal_slot,
+        recipe_id: recipeId,
+      });
 
       if (mealPlanError) {
         console.error("[db] error inserting meal plan", mealPlanError, { slot: recipe.meal_slot, requestId });
@@ -670,19 +681,19 @@ Remember:
     // Generate all images IN PARALLEL to complete before function timeout
     const generateImagesInBackground = async () => {
       const authToken = authHeader || "";
-      
+
       console.log("[images] starting parallel image generation for all recipes", { requestId });
-      
+
       // Generate all images in parallel using Promise.allSettled
       const imagePromises = createdRecipes.map(async (recipe) => {
         try {
           console.log("[images] generating image for recipe", { recipeId: recipe.recipe_id, requestId });
-          
+
           const imageResponse = await fetch(`${supabaseUrl}/functions/v1/generate-recipe-image`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": authToken,
+              Authorization: authToken,
             },
             body: JSON.stringify({
               recipe_id: recipe.recipe_id,
@@ -708,11 +719,11 @@ Remember:
       });
 
       const results = await Promise.allSettled(imagePromises);
-      const successCount = results.filter(r => r.status === "fulfilled" && r.value?.success).length;
-      console.log("[images] background image generation complete", { 
-        total: createdRecipes.length, 
-        successful: successCount, 
-        requestId 
+      const successCount = results.filter((r) => r.status === "fulfilled" && r.value?.success).length;
+      console.log("[images] background image generation complete", {
+        total: createdRecipes.length,
+        successful: successCount,
+        requestId,
       });
     };
 
@@ -727,14 +738,13 @@ Remember:
         date: targetDate,
         recipes: createdRecipes,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error) {
     console.error("[fatal] unexpected error", error, { requestId });
-    return new Response(
-      JSON.stringify({ error: "An unexpected error occurred" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "An unexpected error occurred" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
