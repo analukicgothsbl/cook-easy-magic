@@ -172,17 +172,8 @@ Key ingredients: ${typeof ingredients === "string" ? ingredients : JSON.stringif
               },
             ],
             generationConfig: {
-              // Changed to IMAGE only to focus the model's "brain" on the visual
               responseModalities: ["TEXT", "IMAGE"],
-              // imageConfig ensures the 1024x1024 resolution and counts as 2 credits
-              imageConfig: {
-                aspectRatio: "1:1",
-                imageSize: "1K", // Explicitly sets 1024x1024 resolution
-                addWatermark: false, // Ensure no watermarks are added at the engine level
-              },
-              candidateCount: 1,
             },
-            // Added safetySettings to prevent accidental blocks on food "blood" (berry juice)
             safetySettings: [{ category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" }],
           }),
         },
