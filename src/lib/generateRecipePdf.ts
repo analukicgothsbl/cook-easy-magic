@@ -13,20 +13,26 @@ interface RecipeWithMeta extends Recipe {
   image_url?: string;
 }
 
-// Brand colours — mirrors the app's coral palette
-const CORAL       = [234, 88,  12 ] as const;  // primary coral
-const CORAL_LIGHT = [254, 215, 170] as const;  // orange-200
-const CORAL_PALE  = [255, 247, 237] as const;  // orange-50
-const TEXT_DARK   = [28,  25,  23 ] as const;  // stone-900
-const TEXT_MID    = [120, 113, 108] as const;  // stone-500
-const TEXT_LIGHT  = [168, 162, 158] as const;  // stone-400
+// Brand colours
+const CORAL       = [234, 88,  12 ] as const;
+const CORAL_LIGHT = [254, 215, 170] as const;
+const CORAL_PALE  = [255, 247, 237] as const;
+const TEXT_DARK   = [28,  25,  23 ] as const;
+const TEXT_MID    = [120, 113, 108] as const;
+const TEXT_LIGHT  = [168, 162, 158] as const;
 const WHITE       = [255, 255, 255] as const;
-const DIVIDER     = [231, 229, 228] as const;  // stone-200
+const DIVIDER     = [231, 229, 228] as const;
 
-const PAGE_W    = 210;
-const PAGE_H    = 297;
-const MARGIN    = 18;
+const PAGE_W  = 210;
+const PAGE_H  = 297;
+const MARGIN  = 13;
 const CONTENT_W = PAGE_W - MARGIN * 2;
+
+// Image takes 2/3 of content width, cards take the remaining 1/3
+const IMG_COL_W   = Math.round(CONTENT_W * 2 / 3);
+const CARD_COL_W  = CONTENT_W - IMG_COL_W - 4; // 4mm gap between columns
+const IMG_ASPECT  = 9 / 14; // height/width ratio for a nice portrait-ish food photo
+const IMG_H       = Math.round(IMG_COL_W * IMG_ASPECT);
 
 function formatIngredient(ing: string | Ingredient): string {
   if (typeof ing === "string") return ing;
@@ -43,8 +49,8 @@ function formatCuisine(cuisine: string | undefined): string {
     mexican:                "Mexican",
     asian:                  "Asian",
     balkan:                 "Balkan",
-    healthy_light:          "Healthy Light",
-    comfort_food:           "Comfort Food",
+    healthy_light:          "Healthy",
+    comfort_food:           "Comfort",
   };
   return map[cuisine] || cuisine;
 }
@@ -67,12 +73,9 @@ function splitText(doc: jsPDF, text: string, maxWidth: number): string[] {
   return doc.splitTextToSize(text, maxWidth);
 }
 
-function checkPageBreak(doc: jsPDF, y: number, needed: number): number {
-  if (y + needed > PAGE_H - MARGIN - 14) {
-    doc.addPage();
-    return MARGIN + 6;
-  }
-  return y;
+function drawDot(doc: jsPDF, x: number, y: number, r = 0.9, color: readonly [number, number, number] = CORAL) {
+  doc.setFillColor(...color);
+  doc.circle(x, y, r, "F");
 }
 
 function drawHRule(doc: jsPDF, yPos: number) {
@@ -81,44 +84,53 @@ function drawHRule(doc: jsPDF, yPos: number) {
   doc.line(MARGIN, yPos, PAGE_W - MARGIN, yPos);
 }
 
-/** A small filled dot (replaces emoji bullets) */
-function drawDot(doc: jsPDF, x: number, y: number, r = 1, color: readonly [number, number, number] = CORAL) {
-  doc.setFillColor(...color);
-  doc.circle(x, y, r, "F");
+function drawSectionHeading(doc: jsPDF, label: string, y: number): number {
+  doc.setFontSize(6.5);
+  doc.setFont("helvetica", "bold");
+  doc.setCharSpace(1.5);
+  doc.setTextColor(...CORAL);
+  doc.text(label, MARGIN, y + 3.5);
+  doc.setCharSpace(0);
+  const hw = doc.getTextWidth(label) + 4;
+  doc.setFillColor(...CORAL);
+  doc.rect(MARGIN, y + 5, hw, 0.7, "F");
+  return y + 10;
 }
 
 export async function generateRecipePdf(recipe: RecipeWithMeta, imageUrl?: string | null): Promise<void> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const instructions = getInstructions(recipe);
-  let y = 0;
 
-  // ── HEADER BAND ──────────────────────────────────────────────────────────
-  // Full-width coral strip
+  // ── HEADER ───────────────────────────────────────────────────────────────
+  // Compact coral header — just the title
+  const HEADER_H = 26;
   doc.setFillColor(...CORAL);
-  doc.rect(0, 0, PAGE_W, 44, "F");
+  doc.rect(0, 0, PAGE_W, HEADER_H, "F");
 
-  // Brand name — top-left, small caps style
+  // Brand label — tiny, letter-spaced
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(...WHITE);
-  doc.setCharSpace(2);
-  doc.text("COOKMASTER", MARGIN, 12);
+  doc.setFontSize(5.5);
+  doc.setTextColor(255, 200, 160);
+  doc.setCharSpace(2.5);
+  doc.text("COOKMASTER", MARGIN, 7);
   doc.setCharSpace(0);
-
-  // Thin accent rule under brand
-  doc.setDrawColor(255, 255, 255, 0.4);
-  doc.setLineWidth(0.3);
 
   // Recipe title
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFontSize(15);
+  doc.setTextColor(...WHITE);
   const titleLines = splitText(doc, recipe.title, CONTENT_W - 4);
-  // Vertically centre title in the band
-  const titleY = titleLines.length > 1 ? 22 : 28;
+  const titleY = titleLines.length > 1 ? 13 : 18;
   doc.text(titleLines, MARGIN, titleY);
-  y = 44;
 
-  // ── RECIPE IMAGE ─────────────────────────────────────────────────────────
+  let y = HEADER_H + 5;
+
+  // ── IMAGE + META CARDS (side by side) ───────────────────────────────────
+  const sectionTop = y;
+  const imgX = MARGIN;
+  const cardsX = MARGIN + IMG_COL_W + 4;
+
+  // --- LEFT: Recipe image ---
   if (imageUrl) {
     try {
       const response = await fetch(imageUrl);
@@ -130,266 +142,179 @@ export async function generateRecipePdf(recipe: RecipeWithMeta, imageUrl?: strin
         reader.readAsDataURL(blob);
       });
 
-      const imgH = 72;
-      // Slight drop-shadow effect via a darker rect behind
-      doc.setFillColor(220, 210, 200);
-      doc.rect(MARGIN + 0.6, y + 4.6, CONTENT_W, imgH, "F");
-      doc.addImage(dataUrl, "JPEG", MARGIN, y + 4, CONTENT_W, imgH, undefined, "MEDIUM");
-      y += imgH + 10;
+      // Soft shadow
+      doc.setFillColor(210, 200, 195);
+      doc.roundedRect(imgX + 0.8, sectionTop + 0.8, IMG_COL_W, IMG_H, 3, 3, "F");
+      doc.addImage(dataUrl, "JPEG", imgX, sectionTop, IMG_COL_W, IMG_H, undefined, "MEDIUM");
     } catch {
-      y += 6;
+      // placeholder rect if image fails
+      doc.setFillColor(...CORAL_PALE);
+      doc.roundedRect(imgX, sectionTop, IMG_COL_W, IMG_H, 3, 3, "F");
     }
   } else {
-    y += 8;
+    doc.setFillColor(...CORAL_PALE);
+    doc.roundedRect(imgX, sectionTop, IMG_COL_W, IMG_H, 3, 3, "F");
   }
 
-  // ── META CHIPS ROW ───────────────────────────────────────────────────────
+  // --- RIGHT: Meta cards stacked vertically ---
   const chips: Array<{ label: string; value: string }> = [];
-  if (recipe.meal_category) chips.push({ label: "Meal",       value: recipe.meal_category });
+  if (recipe.meal_category) chips.push({ label: "Meal",       value: recipe.meal_category.charAt(0).toUpperCase() + recipe.meal_category.slice(1) });
   if (recipe.time_minutes)  chips.push({ label: "Time",       value: `${recipe.time_minutes} min` });
   if (recipe.servings)      chips.push({ label: "Servings",   value: String(recipe.servings) });
-  if (recipe.difficulty)    chips.push({ label: "Difficulty", value: recipe.difficulty });
+  if (recipe.difficulty)    chips.push({ label: "Difficulty", value: recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1) });
   if (recipe.cuisine)       chips.push({ label: "Cuisine",    value: formatCuisine(recipe.cuisine) });
 
-  if (chips.length > 0) {
-    y = checkPageBreak(doc, y, 14);
-    let chipX = MARGIN;
+  const cardGap = 2.5;
+  const totalCards = chips.length || 1;
+  const cardH = (IMG_H - cardGap * (totalCards - 1)) / totalCards;
 
-    for (const chip of chips) {
-      const labelW  = doc.setFontSize(6.5).getTextWidth(chip.label.toUpperCase());
-      const valueW  = doc.setFontSize(8).getTextWidth(chip.value);
-      const chipW   = Math.max(labelW, valueW) + 8;
+  chips.forEach((chip, i) => {
+    const cardY = sectionTop + i * (cardH + cardGap);
 
-      // Chip background
-      doc.setFillColor(...CORAL_PALE);
-      doc.roundedRect(chipX, y, chipW, 12, 2, 2, "F");
+    // Card background
+    doc.setFillColor(...CORAL_PALE);
+    doc.setDrawColor(...CORAL_LIGHT);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(cardsX, cardY, CARD_COL_W, cardH, 2, 2, "FD");
 
-      // Label (tiny uppercase)
-      doc.setFontSize(5.5);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...TEXT_LIGHT);
-      doc.setCharSpace(0.8);
-      doc.text(chip.label.toUpperCase(), chipX + chipW / 2, y + 4.2, { align: "center" });
-      doc.setCharSpace(0);
+    // Left accent strip
+    doc.setFillColor(...CORAL);
+    doc.roundedRect(cardsX, cardY, 2.5, cardH, 1.5, 1.5, "F");
 
-      // Value
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...CORAL);
-      doc.text(chip.value, chipX + chipW / 2, y + 9.5, { align: "center" });
+    // Label
+    doc.setFontSize(5.5);
+    doc.setFont("helvetica", "bold");
+    doc.setCharSpace(0.8);
+    doc.setTextColor(...TEXT_LIGHT);
+    doc.text(chip.label.toUpperCase(), cardsX + CARD_COL_W / 2 + 1, cardY + cardH * 0.35, { align: "center" });
+    doc.setCharSpace(0);
 
-      chipX += chipW + 4;
-      if (chipX > PAGE_W - MARGIN - 20) break;
-    }
-    y += 18;
-  }
+    // Value
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...CORAL);
+    doc.text(chip.value, cardsX + CARD_COL_W / 2 + 1, cardY + cardH * 0.72, { align: "center" });
+  });
+
+  y = sectionTop + IMG_H + 6;
 
   // ── SHORT DESCRIPTION ────────────────────────────────────────────────────
   if (recipe.description_short) {
-    y = checkPageBreak(doc, y, 14);
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(...TEXT_MID);
     const descLines = splitText(doc, recipe.description_short, CONTENT_W);
     doc.text(descLines, MARGIN, y);
-    y += descLines.length * 4.8 + 6;
+    y += descLines.length * 4.5 + 5;
     doc.setFont("helvetica", "normal");
-  }
-
-  // ── NUTRITION BOX ────────────────────────────────────────────────────────
-  if (recipe.nutrition_estimate) {
-    y = checkPageBreak(doc, y, 26);
-    const n   = recipe.nutrition_estimate as unknown as Record<string, string | number>;
-    const boxH = 22;
-
-    // Outer border box
-    doc.setFillColor(...CORAL_PALE);
-    doc.setDrawColor(...CORAL_LIGHT);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(MARGIN, y, CONTENT_W, boxH, 3, 3, "FD");
-
-    // Left coral accent strip
-    doc.setFillColor(...CORAL);
-    doc.roundedRect(MARGIN, y, 3, boxH, 2, 2, "F");
-
-    // Section label
-    doc.setFontSize(6.5);
-    doc.setFont("helvetica", "bold");
-    doc.setCharSpace(1.2);
-    doc.setTextColor(...CORAL);
-    doc.text("NUTRITION", MARGIN + 6, y + 6);
-    doc.setCharSpace(0);
-
-    const cols  = ["Calories", "Protein", "Carbs", "Fat"];
-    const vals  = [
-      `${n.calories ?? "-"} kcal`,
-      String(n.protein ?? "-"),
-      String(n.carbs   ?? "-"),
-      String(n.fat     ?? "-"),
-    ];
-    const colW  = (CONTENT_W - 6) / 4;
-
-    cols.forEach((col, i) => {
-      const cx = MARGIN + 6 + colW * i + colW / 2;
-
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(...TEXT_MID);
-      doc.text(col, cx, y + 12, { align: "center" });
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...TEXT_DARK);
-      doc.text(vals[i], cx, y + 19, { align: "center" });
-    });
-
-    y += boxH + 8;
   }
 
   // ── INGREDIENTS ──────────────────────────────────────────────────────────
   if (recipe.ingredients && recipe.ingredients.length > 0) {
-    y = checkPageBreak(doc, y, 20);
     drawHRule(doc, y);
-    y += 5;
+    y += 4;
+    y = drawSectionHeading(doc, "INGREDIENTS", y);
 
-    // Section heading
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "bold");
-    doc.setCharSpace(1.5);
-    doc.setTextColor(...CORAL);
-    doc.text("INGREDIENTS", MARGIN, y + 4);
-    doc.setCharSpace(0);
-
-    // Underline accent
-    const headW = doc.getTextWidth("INGREDIENTS") + 6;
-    doc.setFillColor(...CORAL);
-    doc.rect(MARGIN, y + 6, headW, 0.8, "F");
-    y += 12;
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...TEXT_DARK);
-    doc.setFontSize(8.5);
-
-    const halfW = (CONTENT_W - 6) / 2;
     const ings  = (recipe.ingredients as Array<string | Ingredient>).map(formatIngredient);
     const half  = Math.ceil(ings.length / 2);
     const left  = ings.slice(0, half);
     const right = ings.slice(half);
-    const rowH  = 6;
+    const halfW = (CONTENT_W - 6) / 2;
+    const rowH  = 5.5;
     const rows  = Math.max(left.length, right.length);
 
-    y = checkPageBreak(doc, y, rows * rowH + 4);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
 
     for (let i = 0; i < rows; i++) {
-      // Alternate row tint
       if (i % 2 === 0) {
         doc.setFillColor(250, 247, 245);
-        doc.rect(MARGIN, y + i * rowH - 1.5, CONTENT_W, rowH, "F");
+        doc.rect(MARGIN, y + i * rowH - 1.2, CONTENT_W, rowH, "F");
       }
-
       if (left[i]) {
-        drawDot(doc, MARGIN + 2, y + i * rowH + 2.2, 0.9);
+        drawDot(doc, MARGIN + 2, y + i * rowH + 2, 0.85);
         doc.setTextColor(...TEXT_DARK);
-        doc.text(left[i], MARGIN + 6, y + i * rowH + 3.5);
+        doc.text(left[i], MARGIN + 5.5, y + i * rowH + 3.2);
       }
       if (right[i]) {
-        drawDot(doc, MARGIN + halfW + 8, y + i * rowH + 2.2, 0.9);
+        drawDot(doc, MARGIN + halfW + 8, y + i * rowH + 2, 0.85);
         doc.setTextColor(...TEXT_DARK);
-        doc.text(right[i], MARGIN + halfW + 12, y + i * rowH + 3.5);
+        doc.text(right[i], MARGIN + halfW + 11.5, y + i * rowH + 3.2);
       }
     }
-    y += rows * rowH + 8;
+    y += rows * rowH + 6;
   }
 
   // ── INSTRUCTIONS ─────────────────────────────────────────────────────────
   if (instructions.length > 0) {
-    y = checkPageBreak(doc, y, 20);
     drawHRule(doc, y);
-    y += 5;
+    y += 4;
+    y = drawSectionHeading(doc, "INSTRUCTIONS", y);
 
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "bold");
-    doc.setCharSpace(1.5);
-    doc.setTextColor(...CORAL);
-    doc.text("INSTRUCTIONS", MARGIN, y + 4);
-    doc.setCharSpace(0);
-
-    const headW2 = doc.getTextWidth("INSTRUCTIONS") + 6;
-    doc.setFillColor(...CORAL);
-    doc.rect(MARGIN, y + 6, headW2, 0.8, "F");
-    y += 12;
-
-    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
 
     for (let i = 0; i < instructions.length; i++) {
-      const step   = instructions[i];
-      const lines  = splitText(doc, step, CONTENT_W - 16);
-      const blockH = lines.length * 5 + 6;
+      const step  = instructions[i];
+      const lines = splitText(doc, step, CONTENT_W - 10);
+      const lineH = 4.2;
 
-      y = checkPageBreak(doc, y, blockH);
-
-      // Step number badge
-      doc.setFillColor(...CORAL);
-      doc.circle(MARGIN + 4.5, y + 4, 4.5, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
-      doc.setTextColor(...WHITE);
-      doc.text(String(i + 1), MARGIN + 4.5, y + 5.8, { align: "center" });
+      // Orange dot bullet (same style as ingredients)
+      drawDot(doc, MARGIN + 2, y + lineH * 0.6, 0.85);
 
       // Step text
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
       doc.setTextColor(...TEXT_DARK);
-      doc.text(lines, MARGIN + 12, y + 4);
-      y += blockH;
+      doc.text(lines, MARGIN + 5.5, y + lineH * 0.85);
+      y += lines.length * lineH + 2;
     }
-    y += 4;
+    y += 3;
   }
 
   // ── PRO TIP ──────────────────────────────────────────────────────────────
   if (recipe.tips) {
-    y = checkPageBreak(doc, y, 24);
-    const tipLines = splitText(doc, recipe.tips, CONTENT_W - 14);
-    const tipBoxH  = tipLines.length * 5 + 14;
+    const tipLines = splitText(doc, recipe.tips, CONTENT_W - 12);
+    const tipBoxH  = tipLines.length * 4.5 + 12;
 
-    // Tip box with left accent
     doc.setFillColor(...CORAL_PALE);
     doc.setDrawColor(...CORAL_LIGHT);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(MARGIN, y, CONTENT_W, tipBoxH, 3, 3, "FD");
+    doc.setLineWidth(0.35);
+    doc.roundedRect(MARGIN, y, CONTENT_W, tipBoxH, 2.5, 2.5, "FD");
     doc.setFillColor(...CORAL);
-    doc.roundedRect(MARGIN, y, 3, tipBoxH, 2, 2, "F");
+    doc.roundedRect(MARGIN, y, 2.5, tipBoxH, 1.5, 1.5, "F");
 
-    doc.setFontSize(6.5);
+    doc.setFontSize(5.5);
     doc.setFont("helvetica", "bold");
     doc.setCharSpace(1);
     doc.setTextColor(...CORAL);
-    doc.text("PRO TIP", MARGIN + 7, y + 6.5);
+    doc.text("PRO TIP", MARGIN + 6, y + 5.5);
     doc.setCharSpace(0);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
+    doc.setFontSize(7.5);
     doc.setTextColor(...TEXT_DARK);
-    doc.text(tipLines, MARGIN + 7, y + 12);
-    y += tipBoxH + 6;
+    doc.text(tipLines, MARGIN + 6, y + 10);
+    y += tipBoxH + 4;
   }
 
   // ── FOOTER ───────────────────────────────────────────────────────────────
   const totalPages = (doc as unknown as { internal: { getNumberOfPages: () => number } }).internal.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
-
-    // Footer band
     doc.setFillColor(...CORAL);
-    doc.rect(0, PAGE_H - 12, PAGE_W, 12, "F");
+    doc.rect(0, PAGE_H - 10, PAGE_W, 10, "F");
 
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(...WHITE);
-    doc.setCharSpace(0.5);
-    doc.text("cook-master-recipe.lovable.app", MARGIN, PAGE_H - 5);
+    doc.setCharSpace(1.5);
+    doc.text("COOKMASTER", MARGIN, PAGE_H - 3.8);
     doc.setCharSpace(0);
-    doc.text(`${p} / ${totalPages}`, PAGE_W - MARGIN, PAGE_H - 5, { align: "right" });
+
+    if (totalPages > 1) {
+      doc.setFont("helvetica", "normal");
+      doc.setCharSpace(0);
+      doc.text(`${p} / ${totalPages}`, PAGE_W - MARGIN, PAGE_H - 3.8, { align: "right" });
+    }
   }
 
   // ── SAVE ─────────────────────────────────────────────────────────────────
