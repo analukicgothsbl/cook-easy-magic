@@ -30,7 +30,8 @@ const CONTENT_W = PAGE_W - MARGIN * 2;
 
 // Image takes 2/3 of content width, cards take the remaining 1/3
 const IMG_COL_W   = Math.round(CONTENT_W * 2 / 3);
-const CARD_COL_W  = CONTENT_W - IMG_COL_W - 4; // 4mm gap between columns
+const COL_GAP     = 10; // gap between image and cards column
+const CARD_COL_W  = CONTENT_W - IMG_COL_W - COL_GAP;
 const IMG_ASPECT  = 9 / 14; // height/width ratio for a nice portrait-ish food photo
 const IMG_H       = Math.round(IMG_COL_W * IMG_ASPECT);
 
@@ -128,7 +129,7 @@ export async function generateRecipePdf(recipe: RecipeWithMeta, imageUrl?: strin
   // ── IMAGE + META CARDS (side by side) ───────────────────────────────────
   const sectionTop = y;
   const imgX = MARGIN;
-  const cardsX = MARGIN + IMG_COL_W + 4;
+  const cardsX = MARGIN + IMG_COL_W + COL_GAP;
 
   // --- LEFT: Recipe image ---
   if (imageUrl) {
@@ -181,19 +182,22 @@ export async function generateRecipePdf(recipe: RecipeWithMeta, imageUrl?: strin
     doc.setFillColor(...CORAL);
     doc.roundedRect(cardsX, cardY, 2.5, cardH, 1.5, 1.5, "F");
 
+    // Center X = card left edge + accent strip width + remaining usable width / 2
+    const cardCenterX = cardsX + 2.5 + (CARD_COL_W - 2.5) / 2;
+
     // Label
     doc.setFontSize(5.5);
     doc.setFont("helvetica", "bold");
     doc.setCharSpace(0.8);
     doc.setTextColor(...TEXT_LIGHT);
-    doc.text(chip.label.toUpperCase(), cardsX + CARD_COL_W / 2 + 1, cardY + cardH * 0.35, { align: "center" });
+    doc.text(chip.label.toUpperCase(), cardCenterX, cardY + cardH * 0.35, { align: "center" });
     doc.setCharSpace(0);
 
     // Value
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...CORAL);
-    doc.text(chip.value, cardsX + CARD_COL_W / 2 + 1, cardY + cardH * 0.72, { align: "center" });
+    doc.text(chip.value, cardCenterX, cardY + cardH * 0.72, { align: "center" });
   });
 
   y = sectionTop + IMG_H + 6;
