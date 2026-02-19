@@ -57,14 +57,16 @@ function CategorySection({
   const emoji = categoryEmojis[category] || '🍽️';
 
   return (
-    <div className="border border-border rounded-xl overflow-hidden">
+    <div className="card-warm overflow-hidden">
       {/* Category header */}
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 bg-card hover:bg-accent/30 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-accent/30 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <span className="text-xl">{emoji}</span>
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg flex-shrink-0">
+            {emoji}
+          </div>
           <div className="text-left">
             <h3 className="font-semibold text-foreground text-base">{label}</h3>
             <p className="text-xs text-muted-foreground">
@@ -86,22 +88,19 @@ function CategorySection({
 
       {/* Recipe list */}
       {open && (
-        <div className="divide-y divide-border/50">
+        <div className="border-t border-border/50 divide-y divide-border/40">
           {recipes.map((recipe) => (
             <div
               key={recipe.id}
-              className="flex items-center gap-4 px-5 py-3 bg-background/50 hover:bg-accent/20 transition-colors"
+              className="flex items-center gap-4 px-5 py-3 hover:bg-accent/20 transition-colors"
             >
-              {/* Heart indicator */}
-              <Heart className="w-3.5 h-3.5 text-destructive fill-destructive flex-shrink-0" />
+              <Heart className="w-3 h-3 text-destructive fill-destructive flex-shrink-0" />
 
-              {/* Title */}
               <span className="flex-1 text-sm font-medium text-foreground leading-snug">
                 {recipe.title}
               </span>
 
-              {/* Meta pills */}
-              <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+              <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
                 {recipe.time_minutes && (
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="w-3 h-3" />
@@ -287,8 +286,8 @@ export function CookbookView() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header — matches Overview welcome banner */}
+      <div className="bg-gradient-to-r from-primary/10 to-accent/30 rounded-2xl p-6 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-primary" />
@@ -302,7 +301,7 @@ export function CookbookView() {
         <button
           onClick={handleGeneratePdf}
           disabled={isGenerating}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm flex-shrink-0"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm flex-shrink-0"
         >
           {isGenerating ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -313,22 +312,25 @@ export function CookbookView() {
         </button>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Stats row — one per category, single row */}
+      <div className="flex gap-3 overflow-x-auto pb-1">
         {Object.entries(recipesByCategory).map(([cat, recs]) => (
-          <div key={cat} className="bg-card border border-border rounded-lg p-3 text-center">
+          <div key={cat} className="card-warm p-4 text-center flex-1 min-w-[90px]">
             <div className="text-2xl mb-1">{categoryEmojis[cat] || '🍽️'}</div>
-            <div className="text-lg font-bold text-foreground">{recs.length}</div>
-            <div className="text-xs text-muted-foreground capitalize">{categoryLabels[cat] || cat}</div>
+            <div className="text-xl font-bold text-foreground">{recs.length}</div>
+            <div className="text-xs text-muted-foreground capitalize mt-0.5">{categoryLabels[cat] || cat}</div>
           </div>
         ))}
       </div>
 
       {/* Categorized recipe list */}
-      <div className="space-y-3">
-        {Object.entries(recipesByCategory).map(([cat, recs]) => (
-          <CategorySection key={cat} category={cat} recipes={recs} />
-        ))}
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-4">Recipes by Category</h3>
+        <div className="space-y-3">
+          {Object.entries(recipesByCategory).map(([cat, recs]) => (
+            <CategorySection key={cat} category={cat} recipes={recs} />
+          ))}
+        </div>
       </div>
 
       {/* PDF info note */}
