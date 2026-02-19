@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Users, ChefHat, X, Flame, Download, Copy, Check } from "lucide-react";
+import { Clock, Users, ChefHat, X, Flame, Download, Copy, Check, FileText } from "lucide-react";
+import { generateRecipePdf } from "@/lib/generateRecipePdf";
 import type { Recipe } from "@/components/RecipeCard";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ interface RecipeDetailModalProps {
 
 export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailModalProps) {
   const [copied, setCopied] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   // Fetch image on mount - no polling, just check once
@@ -187,6 +189,18 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!recipe) return;
+    setPdfLoading(true);
+    try {
+      await generateRecipePdf(recipe as Parameters<typeof generateRecipePdf>[0], imageUrl);
+    } catch (err) {
+      console.error("Failed to generate PDF:", err);
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const handleCopyToClipboard = async () => {
@@ -358,6 +372,33 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleDownloadPdf}
+                        disabled={pdfLoading}
+                        className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
+                      >
+                        {pdfLoading ? (
+                          <span className="w-5 h-5 flex items-center justify-center">
+                            <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <FileText className="w-5 h-5" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{pdfLoading ? "Generating PDF…" : "Download as PDF"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -365,7 +406,7 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                         onClick={handleCopyToClipboard}
                         className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
                       >
-                        {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                        {copied ? <Check className="w-5 h-5 text-success" /> : <Copy className="w-5 h-5" />}
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
