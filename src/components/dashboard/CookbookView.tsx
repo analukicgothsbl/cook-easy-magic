@@ -286,7 +286,7 @@ export function CookbookView() {
   const totalCategories = Object.keys(recipesByCategory).length;
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
