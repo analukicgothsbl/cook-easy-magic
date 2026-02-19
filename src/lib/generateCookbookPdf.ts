@@ -175,7 +175,7 @@ function drawCoverPage(doc: jsPDF, userName: string, totalRecipes: number) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(...CORAL);
-  doc.text(`${totalRecipes} Recipes Inside`, PAGE_W / 2, PAGE_H * 0.70 + 10, { align: "center" });
+  doc.text(`${totalRecipes} recipes`, PAGE_W / 2, PAGE_H * 0.70 + 10, { align: "center" });
 
   // Footer
   doc.setFillColor(...CORAL);
@@ -210,10 +210,9 @@ function drawCategoryPage(doc: jsPDF, category: string, count: number) {
   doc.setTextColor(...TEXT_MID);
   doc.text(`${count} recipe${count !== 1 ? "s" : ""}`, PAGE_W / 2, PAGE_H / 2 + 8, { align: "center" });
 
-  // Decorative lines
+  // Decorative line (bottom only)
   doc.setDrawColor(...CORAL_LIGHT);
   doc.setLineWidth(0.5);
-  doc.line(MARGIN + 20, PAGE_H / 2 - 18, PAGE_W - MARGIN - 20, PAGE_H / 2 - 18);
   doc.line(MARGIN + 20, PAGE_H / 2 + 18, PAGE_W - MARGIN - 20, PAGE_H / 2 + 18);
 
   // Footer
