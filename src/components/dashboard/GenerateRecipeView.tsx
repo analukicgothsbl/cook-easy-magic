@@ -3,7 +3,21 @@ import { RecipeForm, type RecipeFormData, type UserDefaultOptions } from "@/comp
 import { RecipeCard, type Recipe } from "@/components/RecipeCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface SimilarRecipe {
+  id: string;
+  title: string;
+  title_similarity: number;
+  ingredient_overlap: number;
+}
+
+interface DuplicateWarning {
+  recipe: Recipe;
+  similarRecipes: SimilarRecipe[];
+  formData: RecipeFormData;
+}
 
 export function GenerateRecipeView() {
   const { user } = useAuth();
@@ -15,6 +29,8 @@ export function GenerateRecipeView() {
   const [userDefaults, setUserDefaults] = useState<UserDefaultOptions | undefined>(undefined);
   const [isLoadingDefaults, setIsLoadingDefaults] = useState(true);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning | null>(null);
+  const [isForceSaving, setIsForceSaving] = useState(false);
 
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -62,22 +78,15 @@ export function GenerateRecipeView() {
     }, 100);
   };
 
-  // Non-blocking image generation after recipe is created
   const triggerImageGeneration = async (createdRecipeId: string) => {
     setIsGeneratingImage(true);
     try {
       const { error } = await supabase.functions.invoke("generate-recipe-image", {
         body: { recipe_id: createdRecipeId },
       });
-
-      if (error) {
-        console.error("[image] generation failed:", error);
-        // Non-fatal - recipe is still visible
-      } else {
-      }
+      if (error) console.error("[image] generation failed:", error);
     } catch (err) {
       console.error("[image] unexpected error:", err);
-      // Non-fatal - recipe is still visible
     } finally {
       setIsGeneratingImage(false);
     }
@@ -90,20 +99,17 @@ export function GenerateRecipeView() {
     setRecipe(null);
     setRecipeId(null);
     setIsGeneratingImage(false);
+    setDuplicateWarning(null);
     scrollToResult();
 
     try {
-      // Ensure we have a valid session before making the request
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         setErrorMsg("Your session has expired. Please log in again.");
         return;
       }
 
-      const payload = {
-        ...data,
-        guest_id: null, // Logged in user
-      };
+      const payload = { ...data, guest_id: null };
 
       const { data: responseData, error } = await supabase.functions.invoke("generate-recipe", {
         body: payload,
@@ -111,7 +117,6 @@ export function GenerateRecipeView() {
 
       if (error) {
         let errorMessage = "";
-
         if (error.context && typeof error.context === "object") {
           try {
             const responseBody = await (error.context as Response).json?.();
@@ -127,38 +132,40 @@ export function GenerateRecipeView() {
           setErrorMsg("You don't have enough credits. Please add more credits.");
           return;
         }
-
         if (errorMessage.toLowerCase().includes("session") || errorMessage.toLowerCase().includes("authentication")) {
           setErrorMsg("Your session has expired. Please log in again.");
           return;
         }
-
         setErrorMsg("Something went wrong. Please try again.");
         return;
       }
 
       if (responseData?.error) {
         const errorMessage = responseData.error;
-
         if (errorMessage.toLowerCase().includes("not enough credits")) {
           setErrorMsg("You don't have enough credits. Please add more credits.");
           return;
         }
-
         setErrorMsg("Something went wrong. Please try again.");
         return;
       }
 
-      // Success - set recipe data immediately
+      // Check for duplicate warning
+      if (responseData?.duplicate_warning) {
+        setDuplicateWarning({
+          recipe: responseData.recipe,
+          similarRecipes: responseData.similar_recipes || [],
+          formData: data,
+        });
+        return;
+      }
+
+      // Success
       if (responseData?.recipe) {
         const createdRecipeId = responseData.recipe_id;
         setRecipeId(createdRecipeId);
         setRecipe(responseData.recipe);
-
-        // Trigger image generation after recipe is displayed (non-blocking)
-        if (createdRecipeId) {
-          triggerImageGeneration(createdRecipeId);
-        }
+        if (createdRecipeId) triggerImageGeneration(createdRecipeId);
       } else {
         setErrorMsg("Failed to generate recipe. Please try again.");
       }
@@ -170,10 +177,45 @@ export function GenerateRecipeView() {
     }
   };
 
-  const handleRetry = () => {
-    if (lastFormData) {
-      handleFormSubmit(lastFormData);
+  const handleForceSave = async () => {
+    if (!duplicateWarning) return;
+    setIsForceSaving(true);
+    setDuplicateWarning(null);
+    setIsLoading(true);
+
+    try {
+      const payload = { ...duplicateWarning.formData, guest_id: null, force_save: true };
+
+      const { data: responseData, error } = await supabase.functions.invoke("generate-recipe", {
+        body: payload,
+      });
+
+      if (error || responseData?.error) {
+        setErrorMsg("Something went wrong saving the recipe. Please try again.");
+        return;
+      }
+
+      if (responseData?.recipe) {
+        const createdRecipeId = responseData.recipe_id;
+        setRecipeId(createdRecipeId);
+        setRecipe(responseData.recipe);
+        if (createdRecipeId) triggerImageGeneration(createdRecipeId);
+      }
+    } catch (err) {
+      console.error("Force save error:", err);
+      setErrorMsg("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+      setIsForceSaving(false);
     }
+  };
+
+  const handleDiscardDuplicate = () => {
+    setDuplicateWarning(null);
+  };
+
+  const handleRetry = () => {
+    if (lastFormData) handleFormSubmit(lastFormData);
   };
 
   const handleGenerateAnother = () => {
@@ -181,6 +223,7 @@ export function GenerateRecipeView() {
     setRecipeId(null);
     setErrorMsg("");
     setIsGeneratingImage(false);
+    setDuplicateWarning(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -204,7 +247,74 @@ export function GenerateRecipeView() {
         />
       </div>
 
-      {(recipe || isLoading || errorMsg) && (
+      {/* Duplicate Warning */}
+      {duplicateWarning && (
+        <div ref={resultRef} className="max-w-4xl mx-auto">
+          <div className="card-warm p-6 border-2 border-amber-300 dark:border-amber-600">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-foreground mb-1">Similar Recipe Found</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  The generated recipe "<span className="font-medium text-foreground">{duplicateWarning.recipe.title}</span>" is similar to recipes you already have:
+                </p>
+
+                <div className="space-y-2 mb-5">
+                  {duplicateWarning.similarRecipes.map((sr) => (
+                    <div key={sr.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground">{sr.title}</p>
+                        <div className="flex gap-3 mt-1">
+                          {sr.title_similarity > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              Title match: <span className="font-medium text-amber-600 dark:text-amber-400">{sr.title_similarity}%</span>
+                            </span>
+                          )}
+                          {sr.ingredient_overlap > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              Ingredients overlap: <span className="font-medium text-amber-600 dark:text-amber-400">{sr.ingredient_overlap}%</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleForceSave}
+                    disabled={isForceSaving}
+                    className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {isForceSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
+                    Save Anyway
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDiscardDuplicate}
+                    className="rounded-full"
+                  >
+                    Discard & Try Again
+                  </Button>
+                </div>
+              </div>
+              <button
+                onClick={handleDiscardDuplicate}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(recipe || isLoading || errorMsg) && !duplicateWarning && (
         <div ref={resultRef} className="max-w-4xl mx-auto">
           <RecipeCard
             recipe={recipe || { title: "", ingredients: [] }}
