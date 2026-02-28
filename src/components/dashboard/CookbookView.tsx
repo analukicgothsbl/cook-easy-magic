@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ChefHat, Loader2, Heart, BookOpen, Clock, Users, FileDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { ChefHat, Loader2, Heart, BookOpen, Clock, Users, FileDown, ChevronDown, ChevronRight, Coffee, Cookie, Salad, CakeSlice, Flame, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { Recipe } from '@/components/RecipeCard';
@@ -30,13 +30,13 @@ const categoryLabels: Record<string, string> = {
   other: 'Other',
 };
 
-const categoryEmojis: Record<string, string> = {
-  breakfast: '🌅',
-  lunch: '☀️',
-  dinner: '🌙',
-  dessert: '🍰',
-  snack: '🍎',
-  other: '🍽️',
+const categoryIcons: Record<string, { Icon: LucideIcon; color: string }> = {
+  breakfast: { Icon: Coffee, color: 'bg-orange-100 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400' },
+  lunch: { Icon: Salad, color: 'bg-green-100 text-green-600 dark:bg-green-950/30 dark:text-green-400' },
+  dinner: { Icon: Flame, color: 'bg-red-100 text-red-600 dark:bg-red-950/30 dark:text-red-400' },
+  dessert: { Icon: CakeSlice, color: 'bg-pink-100 text-pink-600 dark:bg-pink-950/30 dark:text-pink-400' },
+  snack: { Icon: Cookie, color: 'bg-amber-100 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' },
+  other: { Icon: UtensilsCrossed, color: 'bg-muted text-muted-foreground' },
 };
 
 const difficultyColors: Record<string, string> = {
@@ -54,7 +54,8 @@ function CategorySection({
 }) {
   const [open, setOpen] = useState(true);
   const label = categoryLabels[category] || category;
-  const emoji = categoryEmojis[category] || '🍽️';
+  const iconData = categoryIcons[category] || categoryIcons.other;
+  const IconComp = iconData.Icon;
 
   return (
     <div className="card-warm overflow-hidden">
@@ -64,8 +65,8 @@ function CategorySection({
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-accent/30 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg flex-shrink-0">
-            {emoji}
+          <div className={`w-9 h-9 rounded-xl ${iconData.color} flex items-center justify-center flex-shrink-0`}>
+            <IconComp className="w-4 h-4" />
           </div>
           <div className="text-left">
             <h3 className="font-semibold text-foreground text-base">{label}</h3>
@@ -316,7 +317,9 @@ export function CookbookView() {
       <div className="flex gap-3 overflow-x-auto pb-1">
         {Object.entries(recipesByCategory).map(([cat, recs]) => (
           <div key={cat} className="card-warm p-4 text-center flex-1 min-w-[90px]">
-            <div className="text-2xl mb-1">{categoryEmojis[cat] || '🍽️'}</div>
+            <div className={`w-10 h-10 rounded-xl ${(categoryIcons[cat] || categoryIcons.other).color} flex items-center justify-center mx-auto mb-1`}>
+              {(() => { const I = (categoryIcons[cat] || categoryIcons.other).Icon; return <I className="w-5 h-5" />; })()}
+            </div>
             <div className="text-xl font-bold text-foreground">{recs.length}</div>
             <div className="text-xs text-muted-foreground capitalize mt-0.5">{categoryLabels[cat] || cat}</div>
           </div>

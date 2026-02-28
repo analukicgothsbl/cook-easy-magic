@@ -15,6 +15,12 @@ import {
   Eye,
   Sparkles,
   CreditCard,
+  Coffee,
+  Cookie,
+  Salad,
+  CakeSlice,
+  Flame,
+  type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from "date-fns";
@@ -103,12 +109,12 @@ interface Ingredient {
   unit: string;
 }
 
-const MEAL_SLOTS = [
-  { id: "breakfast", label: "Breakfast", icon: "🌅" },
-  { id: "snack_morning", label: "Snack", icon: "🍎" },
-  { id: "lunch", label: "Lunch", icon: "☀️" },
-  { id: "dessert", label: "Dessert", icon: "🍰" },
-  { id: "dinner", label: "Dinner", icon: "🌙" },
+const MEAL_SLOTS: readonly { id: string; label: string; Icon: LucideIcon; color: string }[] = [
+  { id: "breakfast", label: "Breakfast", Icon: Coffee, color: "bg-orange-100 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400" },
+  { id: "snack_morning", label: "Snack", Icon: Cookie, color: "bg-amber-100 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400" },
+  { id: "lunch", label: "Lunch", Icon: Salad, color: "bg-green-100 text-green-600 dark:bg-green-950/30 dark:text-green-400" },
+  { id: "dessert", label: "Dessert", Icon: CakeSlice, color: "bg-pink-100 text-pink-600 dark:bg-pink-950/30 dark:text-pink-400" },
+  { id: "dinner", label: "Dinner", Icon: Flame, color: "bg-red-100 text-red-600 dark:bg-red-950/30 dark:text-red-400" },
 ] as const;
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -683,7 +689,7 @@ export function MealPlannerView() {
                       }`}
                     >
                       <div className="flex items-center gap-1">
-                        <span>{slot.icon}</span>
+                        <slot.Icon className="w-3 h-3 flex-shrink-0" />
                         <span className="truncate flex-1">
                           {meal?.recipe?.title || meal?.custom_text || slot.label}
                         </span>
@@ -1106,7 +1112,9 @@ export function MealPlannerView() {
                       {/* Header: Icon + Label + Delete */}
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">{slot.icon}</span>
+                          <div className={`w-8 h-8 rounded-lg ${slot.color} flex items-center justify-center`}>
+                            <slot.Icon className="w-4 h-4" />
+                          </div>
                           <h4 className="font-semibold text-foreground">{slot.label}</h4>
                         </div>
                         {meal && (
