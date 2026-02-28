@@ -1,10 +1,23 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Users, ChefHat, X, Flame, Download, Copy, Check, FileText } from "lucide-react";
+import { Clock, Users, ChefHat, X, Flame, Download, Copy, Check, FileText, Trash2, Loader2 } from "lucide-react";
 import { generateRecipePdf } from "@/lib/generateRecipePdf";
 import type { Recipe } from "@/components/RecipeCard";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 interface RecipeWithMeta extends Recipe {
   id: string;
   created_at: string;
@@ -24,9 +37,50 @@ interface RecipeDetailModalProps {
 }
 
 export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailModalProps) {
+  const { user } = useAuth();
   const [copied, setCopied] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Check admin role
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    supabase.from("user_extended").select("role").eq("user_id", user.id).single()
+      .then(({ data }) => setIsAdmin(data?.role === "admin"));
+  }, [user]);
+
+  const handleDeleteRecipe = async () => {
+    if (!recipe?.id || !isAdmin) return;
+    setIsDeleting(true);
+    try {
+      // Delete favorites referencing this recipe
+      await supabase.from("recipe_favorites").delete().eq("recipe_id", recipe.id);
+      // Delete recipe_user associations
+      await supabase.from("recipe_user").delete().eq("recipe_id", recipe.id);
+      // Delete recipe image
+      await supabase.from("recipe_image").delete().eq("recipe_id", recipe.id);
+      // Delete recipe reviews
+      await supabase.from("recipe_review").delete().eq("recipe_id", recipe.id);
+      // Delete credit_usage references
+      await supabase.from("credit_usage").update({ recipe_id: null }).eq("recipe_id", recipe.id);
+      // Delete meal_plan references
+      await supabase.from("meal_plan").update({ recipe_id: null }).eq("recipe_id", recipe.id);
+      // Delete the recipe itself
+      const { error } = await supabase.from("recipe").delete().eq("id", recipe.id);
+      if (error) throw error;
+      toast.success("Recipe deleted successfully");
+      onClose();
+      // Reload to reflect changes
+      window.location.reload();
+    } catch (err) {
+      console.error("Error deleting recipe:", err);
+      toast.error("Failed to delete recipe");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Fetch image on mount - no polling, just check once
   useEffect(() => {
@@ -356,7 +410,8 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
 
             {/* Recipe Actions */}
             <div className="pt-4 border-t border-border">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -414,6 +469,47 @@ export function RecipeDetailModal({ recipe, onClose, headerIcon }: RecipeDetailM
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+                </div>
+
+                {/* Admin Delete Button */}
+                {isAdmin && (
+                  <AlertDialog>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              disabled={isDeleting}
+                              className="p-2 hover:bg-destructive/10 rounded-full transition-colors text-muted-foreground hover:text-destructive"
+                            >
+                              {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                            </button>
+                          </AlertDialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete recipe</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this recipe?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete "{recipe.title}" and remove it from all users' favorites. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteRecipe}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             </div>
           </div>
