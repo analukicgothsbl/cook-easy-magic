@@ -116,6 +116,8 @@ const creditPackages = [
   { price: 10, credits: 115 },
 ];
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const formatReason = (reason: CreditReason): string => {
   const reasonMap: Record<CreditReason, string> = {
     signup_bonus: 'Signup Bonus',
@@ -169,7 +171,6 @@ export function SettingsView({ initialTab, onTabChange }: SettingsViewProps) {
   const [userRole, setUserRole] = useState<AppRole | null>(null);
 
   // Credit manage state (admin only)
-  const [allUsers, setAllUsers] = useState<{ user_id: string; email: string }[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [manageType, setManageType] = useState<CreditType>('income');
   const [manageAmount, setManageAmount] = useState<string>('');
@@ -401,44 +402,16 @@ export function SettingsView({ initialTab, onTabChange }: SettingsViewProps) {
     }
   };
 
-  // Fetch all users for admin credit management
-  useEffect(() => {
-    const fetchAllUsers = async () => {
-      if (!user || userRole !== 'admin') return;
-
-      try {
-        // Fetch all users from user_extended and their auth emails
-        const { data: usersData, error } = await supabase
-          .from('user_extended')
-          .select('user_id');
-
-        if (error) throw error;
-
-        // We need to get emails - but we can't access auth.users directly
-        // So we'll use a workaround by fetching from credit_wallet or showing user_id
-        // For now, let's fetch user emails from the auth context or use user_id
-        if (usersData) {
-          // Map user_id to email - we'll need to get this from somewhere
-          // For admin to see all users, we need to create an edge function or use a view
-          // For now, let's just use user_id as identifier and admin can input email
-          setAllUsers(usersData.map(u => ({ user_id: u.user_id, email: u.user_id })));
-        }
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    };
-
-    fetchAllUsers();
-  }, [user, userRole]);
-
   const handleManageCredits = async () => {
     if (!user || userRole !== 'admin') {
       toast.error('Admin access required');
       return;
     }
 
-    if (!selectedUserId) {
-      toast.error('Please enter a user email');
+    const userIdentifier = selectedUserId.trim();
+
+    if (!userIdentifier) {
+      toast.error('Please enter a user email or user ID');
       return;
     }
 
@@ -451,28 +424,52 @@ export function SettingsView({ initialTab, onTabChange }: SettingsViewProps) {
     setIsManaging(true);
 
     try {
-      // First, find the user_id by email from auth (we need to look up by email)
-      // Since we can't access auth.users directly, we'll assume selectedUserId is the email
-      // and we need an edge function to get the user_id from email
-      // For now, let's check if the email exists in user_extended by querying differently
-      
-      // Get user_id from email by calling Supabase with service role (edge function needed)
-      // Workaround: Admin enters the user's email, we search user_extended or try to match
-      
-      // Let's try to get user by looking at auth.users via an RPC or just use the input as user_id for testing
-      // For a proper implementation, you'd need an edge function
-      
-      // For now, let's search by the pattern in user_extended or assume it's direct user_id input
-      let targetUserId = selectedUserId;
-      
-      // If it looks like an email, try to find the user
-      if (selectedUserId.includes('@')) {
-        // We need to search - but user_extended doesn't have email
-        // This requires an edge function to look up auth.users
-        // For now, show error that we need user_id
-        toast.error('Please enter the user ID (UUID). Email lookup requires additional setup.');
-        setIsManaging(false);
+      if (!userIdentifier.includes('@') && !UUID_REGEX.test(userIdentifier)) {
+        toast.error('Please enter a valid email or user ID (UUID).');
         return;
+      }
+
+      const resolverPayload = userIdentifier.includes('@')
+        ? { email: userIdentifier }
+        : { user_id: userIdentifier };
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('Your session is missing. Please sign out and sign in again.');
+      }
+
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-resolve-user-id`;
+      const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      if (!import.meta.env.VITE_SUPABASE_URL || !publishableKey) {
+        throw new Error('Supabase environment variables are missing in the frontend.');
+      }
+
+      const resolverResponse = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: publishableKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(resolverPayload),
+      });
+
+      const resolverBody = await resolverResponse.json().catch(() => null);
+
+      if (!resolverResponse.ok) {
+        if (resolverBody && typeof resolverBody.error === 'string') {
+          throw new Error(resolverBody.error);
+        }
+        throw new Error(`Resolve user request failed (${resolverResponse.status})`);
+      }
+
+      const targetUserId = typeof resolverBody?.user_id === 'string' ? resolverBody.user_id : null;
+      if (!targetUserId) {
+        throw new Error('Failed to resolve target user');
       }
 
       // Insert credit usage record
@@ -533,7 +530,11 @@ export function SettingsView({ initialTab, onTabChange }: SettingsViewProps) {
       setManageReason('admin_bonus');
     } catch (error) {
       console.error('Error managing credits:', error);
-      toast.error('Failed to manage credits. Check if user ID is valid.');
+      if (error instanceof Error && error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to manage credits.');
+      }
     } finally {
       setIsManaging(false);
     }
@@ -1056,20 +1057,20 @@ export function SettingsView({ initialTab, onTabChange }: SettingsViewProps) {
           </div>
 
           <div className="space-y-4">
-            {/* User ID Input */}
+            {/* User Lookup Input */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-2">
-                User ID (UUID)
+                User Email or ID
               </label>
               <input
                 type="text"
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
-                placeholder="Enter user ID (e.g., 123e4567-e89b-12d3-a456-426614174000)"
+                placeholder="Enter user email or UUID"
                 className="input-warm w-full"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Find user ID in the database user_extended table
+                Email lookup is supported. UUID must be valid and belong to an existing user.
               </p>
             </div>
 
@@ -1130,7 +1131,7 @@ export function SettingsView({ initialTab, onTabChange }: SettingsViewProps) {
             {/* Submit Button */}
             <button
               onClick={handleManageCredits}
-              disabled={isManaging || !selectedUserId || !manageAmount}
+              disabled={isManaging || !selectedUserId.trim() || !manageAmount}
               className="btn-primary w-full flex items-center justify-center gap-2 mt-6"
             >
               {isManaging ? (
