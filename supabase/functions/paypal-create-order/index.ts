@@ -88,7 +88,7 @@ serve(async (req) => {
     const env = Deno.env.get("PAYPAL_ENV") || "sandbox";
     const baseUrl = env === "production" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
 
-    const siteUrl = req.headers.get("origin") || Deno.env.get("SITE_URL") || "http://localhost:5173";
+    const siteUrl = req.headers.get("origin")!;
 
     // Get PayPal access token
     const accessToken = await getPayPalAccessToken();
