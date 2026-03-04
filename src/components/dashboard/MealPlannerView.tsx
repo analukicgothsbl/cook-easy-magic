@@ -990,6 +990,10 @@ export function MealPlannerView() {
                                           setShowMealPlanForm(false);
                                           return;
                                         }
+                                        if (errorData?.error) {
+                                          toast.error(errorData.error);
+                                          return;
+                                        }
                                       }
                                     } catch {
                                       // Not a JSON error, continue with generic message
