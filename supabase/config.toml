@@ -18,8 +18,5 @@ verify_jwt = false
 [functions.reset-credit-bonus]
 verify_jwt = false
 
-[functions.generate-recipe-image-gemini]
-verify_jwt = false
-
 [functions.admin-resolve-user-id]
 verify_jwt = false
