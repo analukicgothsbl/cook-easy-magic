@@ -118,6 +118,36 @@ interface SimilarRecipe {
   ingredient_overlap: number;
 }
 
+interface RecipeWithTitle {
+  title: string;
+}
+
+interface ExistingRecipeForSimilarity {
+  id: string;
+  title: string;
+  ingredients: unknown[];
+}
+
+function parseRecipeWithTitle(value: unknown): RecipeWithTitle | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  return typeof record.title === "string" ? { title: record.title } : null;
+}
+
+function parseExistingRecipeForSimilarity(value: unknown): ExistingRecipeForSimilarity | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.id !== "string" || typeof record.title !== "string") {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    title: record.title,
+    ingredients: Array.isArray(record.ingredients) ? record.ingredients : [],
+  };
+}
+
 // Thresholds
 const TITLE_SIMILARITY_THRESHOLD = 0.6;
 const INGREDIENT_OVERLAP_THRESHOLD = 0.7;
@@ -386,8 +416,12 @@ Deno.serve(async (req) => {
 
       if (recentRecipes) {
         recentTitles = recentRecipes
-          .map((r: any) => r.recipe?.title)
-          .filter((t: string | undefined): t is string => !!t);
+          .map((row) => {
+            if (!row || typeof row !== "object" || !("recipe" in row)) return null;
+            const recipe = parseRecipeWithTitle((row as { recipe?: unknown }).recipe);
+            return recipe?.title ?? null;
+          })
+          .filter((t): t is string => typeof t === "string" && t.length > 0);
       }
     }
 
@@ -485,12 +519,13 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
         const newIngredientNames = extractIngredientNames(recipe.ingredients || []);
         const similarRecipes: SimilarRecipe[] = [];
 
-        for (const ur of userRecipes) {
-          const existing = ur.recipe as any;
-          if (!existing?.title) continue;
+        for (const row of userRecipes) {
+          if (!row || typeof row !== "object" || !("recipe" in row)) continue;
+          const existing = parseExistingRecipeForSimilarity((row as { recipe?: unknown }).recipe);
+          if (!existing) continue;
 
           const tSim = titleSimilarity(recipe.title, existing.title);
-          const existingIngNames = extractIngredientNames(existing.ingredients || []);
+          const existingIngNames = extractIngredientNames(existing.ingredients);
           const iOverlap = ingredientOverlap(newIngredientNames, existingIngNames);
 
           // Flag if title is very similar OR ingredient overlap is high

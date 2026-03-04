@@ -33,6 +33,18 @@ type Payload = {
   overwrite?: boolean; // default false
 };
 
+function extractGeneratedImageBase64(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.b64_json === "string" && record.b64_json.length > 0) {
+    return record.b64_json;
+  }
+  if (typeof record.base64 === "string" && record.base64.length > 0) {
+    return record.base64;
+  }
+  return null;
+}
+
 function jsonResponse(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
@@ -199,8 +211,8 @@ Key ingredients: ${typeof ingredients === "string" ? ingredients : JSON.stringif
         size: "1024x1024",
       });
 
-      const first = img.data?.[0] as any;
-      b64Image = first?.b64_json ?? first?.base64 ?? null;
+      const first = Array.isArray(img.data) ? img.data[0] : null;
+      b64Image = extractGeneratedImageBase64(first);
 
       if (!b64Image) {
         throw new Error("Image generation returned empty data");
