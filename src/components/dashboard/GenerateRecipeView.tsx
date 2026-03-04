@@ -128,11 +128,12 @@ export function GenerateRecipeView() {
           errorMessage = error.message || "";
         }
 
-        if (errorMessage.toLowerCase().includes("not enough credits")) {
+        const normalizedError = errorMessage.toLowerCase();
+        if (normalizedError.includes("not enough credits") || normalizedError.includes("insufficient_credits")) {
           setErrorMsg("You don't have enough credits. Please add more credits.");
           return;
         }
-        if (errorMessage.toLowerCase().includes("session") || errorMessage.toLowerCase().includes("authentication")) {
+        if (normalizedError.includes("session") || normalizedError.includes("authentication")) {
           setErrorMsg("Your session has expired. Please log in again.");
           return;
         }
@@ -142,7 +143,8 @@ export function GenerateRecipeView() {
 
       if (responseData?.error) {
         const errorMessage = responseData.error;
-        if (errorMessage.toLowerCase().includes("not enough credits")) {
+        const normalizedError = errorMessage.toLowerCase();
+        if (normalizedError.includes("not enough credits") || normalizedError.includes("insufficient_credits")) {
           setErrorMsg("You don't have enough credits. Please add more credits.");
           return;
         }

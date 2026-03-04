@@ -129,7 +129,8 @@ const Index = () => {
         }
         
         // Check for not enough credits
-        if (errorMessage.toLowerCase().includes('not enough credits')) {
+        const normalizedError = errorMessage.toLowerCase();
+        if (normalizedError.includes('not enough credits') || normalizedError.includes('insufficient_credits')) {
           setErrorMsg("You don't have enough credits. Please top up or upgrade your plan.");
           setIsGuestBlocked(false);
           return;
@@ -156,7 +157,8 @@ const Index = () => {
           return;
         }
         
-        if (errorMessage.toLowerCase().includes('not enough credits')) {
+        const normalizedError = errorMessage.toLowerCase();
+        if (normalizedError.includes('not enough credits') || normalizedError.includes('insufficient_credits')) {
           setErrorMsg("You don't have enough credits. Please top up or upgrade your plan.");
           setIsGuestBlocked(false);
           return;

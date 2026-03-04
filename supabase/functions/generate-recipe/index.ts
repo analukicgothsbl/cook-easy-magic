@@ -210,118 +210,6 @@ Deno.serve(async (req) => {
       return { walletBalance, dailyBonus, bonusUsage, bonusRemaining, totalAvailable };
     }
 
-    // ------------------------------------------------------------------
-    // Helper: apply ONE charge (USD) AFTER recipe generation
-    // ------------------------------------------------------------------
-    async function applySingleChargeUsd(params: {
-      userId: string;
-      recipeId: string;
-      costUsd: number;
-      snapshot: CreditSnapshot;
-    }) {
-      const { userId, recipeId, costUsd, snapshot } = params;
-
-      const charge = Math.max(0, Number(costUsd || 0));
-      console.log("[credits] charge: start", { userId, recipeId, charge, snapshot });
-
-      if (charge <= 0) {
-        console.log("[credits] charge: cost is 0, skipping any wallet/bonus updates");
-        return;
-      }
-
-      if (snapshot.totalAvailable < charge) {
-        console.error("[credits] charge: insufficient based on snapshot", {
-          totalAvailable: snapshot.totalAvailable, charge,
-        });
-        throw new Error("Not enough credits");
-      }
-
-      const useFromBonus = Math.min(snapshot.bonusRemaining, charge);
-      const useFromWallet = charge - useFromBonus;
-
-      const newBonusUsage = snapshot.bonusUsage + useFromBonus;
-      const newBonusRemaining = Math.max(0, snapshot.dailyBonus - newBonusUsage);
-      const newWalletBalance = snapshot.walletBalance - useFromWallet;
-
-      console.log("[credits] charge: split", {
-        charge, useFromBonus, useFromWallet, newBonusUsage, newBonusRemaining, newWalletBalance,
-      });
-
-      if (useFromBonus > 0) {
-        const { data: existingBonus, error: existingBonusErr } = await supabase
-          .from("credit_bonus")
-          .select("user_id")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        if (existingBonusErr) {
-          console.error("[credits] charge: credit_bonus existence check error", existingBonusErr);
-          throw new Error("Failed to verify bonus credit row");
-        }
-
-        if (!existingBonus) {
-          const { error: insBonusErr } = await supabase.from("credit_bonus").insert({
-            user_id: userId, daily_bonus: snapshot.dailyBonus,
-            usage: newBonusUsage, updated_at: new Date().toISOString(),
-          });
-          if (insBonusErr) {
-            console.error("[credits] charge: credit_bonus insert error", insBonusErr);
-            throw new Error("Failed to update bonus credit");
-          }
-        } else {
-          const { error: updBonusErr } = await supabase
-            .from("credit_bonus")
-            .update({ usage: newBonusUsage, updated_at: new Date().toISOString() })
-            .eq("user_id", userId);
-
-          if (updBonusErr) {
-            console.error("[credits] charge: credit_bonus update error", updBonusErr);
-            throw new Error("Failed to update bonus credit");
-          }
-        }
-      }
-
-      if (useFromBonus > 0) {
-        const now = new Date().toISOString();
-        const { error: bonusUsageErr } = await supabase.from("credit_usage").insert([
-          { user_id: userId, recipe_id: null, type: "income", amount: useFromBonus, reason: "bonus_credit", created_at: now },
-          { user_id: userId, recipe_id: recipeId, type: "cost", amount: useFromBonus, reason: "generate_recipe", created_at: now },
-        ]);
-
-        if (bonusUsageErr) {
-          console.error("[credits] charge: credit_usage bonus insert error", bonusUsageErr);
-          throw new Error("Failed to record bonus credit usage");
-        }
-      }
-
-      if (useFromWallet > 0) {
-        const { error: walletUsageErr } = await supabase.from("credit_usage").insert({
-          user_id: userId, recipe_id: recipeId, type: "cost",
-          amount: useFromWallet, reason: "generate_recipe", created_at: new Date().toISOString(),
-        });
-
-        if (walletUsageErr) {
-          console.error("[credits] charge: credit_usage wallet insert error", walletUsageErr);
-          throw new Error("Failed to record wallet credit usage");
-        }
-      }
-
-      const newDailyRemaining = newBonusRemaining;
-      const { error: walletUpdateErr } = await supabase
-        .from("credit_wallet")
-        .update({ balance: newWalletBalance, daily_remaining: newDailyRemaining, updated_at: new Date().toISOString() })
-        .eq("user_id", userId);
-
-      if (walletUpdateErr) {
-        console.error("[credits] charge: credit_wallet update error", walletUpdateErr);
-        throw new Error("Failed to update wallet");
-      }
-
-      console.log("[credits] charge: done", {
-        userId, recipeId, charge, useFromBonus, useFromWallet, newWalletBalance, newDailyRemaining,
-      });
-    }
-
     // -------------------- Parse request body --------------------
     const payload: RecipePayload = await req.json();
     console.log("[request] payload", payload);
@@ -554,82 +442,106 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
         }
       }
     }
+    const instructionsText = Array.isArray(recipe.instructions) ? recipe.instructions.join("\n") : "";
+    let recipeId: string | null = null;
 
-    // -------------------- Insert recipe --------------------
-    const { data: insertedRecipe, error: insertError } = await supabase
-      .from("recipe")
-      .insert({
-        title: recipe.title,
-        description_short: recipe.description_short,
-        description_long: recipe.description_long,
-        meal_category: payload.meal_category,
-        cuisine: payload.cuisine,
-        time_minutes: recipe.time_minutes,
-        difficulty: recipe.difficulty || payload.difficulty,
-        servings: recipe.servings,
-        budget_level: payload.budget_level,
-        kids_friendly: recipe.kids_friendly,
-        ingredients: recipe.ingredients,
-        instructions: recipe.instructions.join("\n"),
-        tips: recipe.tips,
-        nutrition_estimate: recipe.nutrition_estimate,
-        input_ingredients: payload.ingredients,
-        input_tokens: inputTokens,
-        output_tokens: outputTokens,
-        total_tokens: totalTokens,
-        cost_usd: costUsd,
-      })
-      .select("id")
-      .single();
-
-    if (insertError) {
-      console.error("[db] error inserting recipe", insertError);
-      return new Response(JSON.stringify({ error: "Failed to save recipe" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const recipeId = insertedRecipe.id;
-    console.log("[db] recipe saved", { recipeId });
-
-    // -------------------- Link recipe to user --------------------
     if (userId) {
-      const { error: linkError } = await supabase
-        .from("recipe_user")
-        .upsert(
-          { user_id: userId, recipe_id: recipeId, created_at: new Date().toISOString() },
-          { onConflict: "user_id,recipe_id" },
-        );
+      // Logged-in users: save recipe + charge credits in one DB transaction via RPC.
+      const { data: rpcRecipeId, error: rpcError } = await supabase.rpc("create_recipe_and_charge", {
+        p_user_id: userId,
+        p_title: recipe.title,
+        p_description_short: recipe.description_short,
+        p_description_long: recipe.description_long,
+        p_meal_category: payload.meal_category,
+        p_cuisine: payload.cuisine,
+        p_time_minutes: recipe.time_minutes,
+        p_difficulty: recipe.difficulty || payload.difficulty,
+        p_servings: recipe.servings,
+        p_budget_level: payload.budget_level,
+        p_kids_friendly: recipe.kids_friendly,
+        p_ingredients_json: recipe.ingredients,
+        p_instructions: instructionsText,
+        p_tips: recipe.tips,
+        p_nutrition_estimate: recipe.nutrition_estimate,
+        p_input_ingredients_json: payload.ingredients,
+        p_input_tokens: inputTokens,
+        p_output_tokens: outputTokens,
+        p_total_tokens: totalTokens,
+        p_cost_usd: costUsd,
+      });
 
-      if (linkError) {
-        console.error("[recipe_user] failed", linkError);
-        return new Response(JSON.stringify({ error: "Failed to link recipe to user" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
+      if (rpcError) {
+        console.error("[db] atomic create+charge RPC failed", rpcError);
+        const msg = String(rpcError.message || "");
 
-    // ✅ APPLY CREDIT CHARGE ONCE (AFTER recipe generation)
-    if (userId && creditSnapshot) {
-      try {
-        await applySingleChargeUsd({ userId, recipeId, costUsd, snapshot: creditSnapshot });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "Not enough credits";
-
-        if (msg === "Not enough credits") {
+        if (msg.includes("INSUFFICIENT_CREDITS")) {
           return new Response(
-            JSON.stringify({ error: "Not enough credits", recipe_id: recipeId }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            JSON.stringify({ error: "INSUFFICIENT_CREDITS" }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        if (msg.includes("CREDIT_WALLET_NOT_FOUND")) {
+          return new Response(
+            JSON.stringify({ error: "Could not verify credit wallet" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
         return new Response(
-          JSON.stringify({ error: "Failed to process credits for recipe generation", recipe_id: recipeId }),
+          JSON.stringify({ error: "Failed to save recipe and process credits atomically" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-    }
 
+      recipeId = typeof rpcRecipeId === "string" ? rpcRecipeId : null;
+      if (!recipeId) {
+        console.error("[db] atomic create+charge RPC returned invalid recipe id", rpcRecipeId);
+        return new Response(
+          JSON.stringify({ error: "Failed to save recipe and process credits atomically" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      console.log("[db] recipe saved and charged atomically", { recipeId, userId });
+    } else {
+      // Guests: save recipe only (no credit charge).
+      const { data: insertedRecipe, error: insertError } = await supabase
+        .from("recipe")
+        .insert({
+          title: recipe.title,
+          description_short: recipe.description_short,
+          description_long: recipe.description_long,
+          meal_category: payload.meal_category,
+          cuisine: payload.cuisine,
+          time_minutes: recipe.time_minutes,
+          difficulty: recipe.difficulty || payload.difficulty,
+          servings: recipe.servings,
+          budget_level: payload.budget_level,
+          kids_friendly: recipe.kids_friendly,
+          ingredients: recipe.ingredients,
+          instructions: instructionsText,
+          tips: recipe.tips,
+          nutrition_estimate: recipe.nutrition_estimate,
+          input_ingredients: payload.ingredients,
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+          total_tokens: totalTokens,
+          cost_usd: costUsd,
+        })
+        .select("id")
+        .single();
+
+      if (insertError) {
+        console.error("[db] error inserting guest recipe", insertError);
+        return new Response(JSON.stringify({ error: "Failed to save recipe" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      recipeId = insertedRecipe.id;
+      console.log("[db] guest recipe saved", { recipeId });
+    }
     // -------------------- Guest: mark as used --------------------
     if (!userId && payload.guest_id) {
       const { data: existingGuest } = await supabase
@@ -667,3 +579,4 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
     });
   }
 });
+
