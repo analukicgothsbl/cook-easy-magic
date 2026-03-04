@@ -20,11 +20,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import OpenAI from "https://esm.sh/openai@4.20.1";
 
-// Declare EdgeRuntime for background tasks
-declare const EdgeRuntime: {
-  waitUntil(promise: Promise<unknown>): void;
-};
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -96,15 +91,6 @@ type CreditSnapshot = {
   bonusUsage: number;
   bonusRemaining: number;
   totalAvailable: number;
-};
-
-// Meal slot to meal_category mapping
-const SLOT_TO_CATEGORY: Record<string, string> = {
-  breakfast: "breakfast",
-  snack_morning: "snack",
-  lunch: "lunch",
-  dessert: "dessert",
-  dinner: "dinner",
 };
 
 const VALID_SLOTS = ["breakfast", "snack_morning", "lunch", "dessert", "dinner"];
@@ -179,157 +165,6 @@ Deno.serve(async (req) => {
       });
 
       return { walletBalance, dailyBonus, bonusUsage, bonusRemaining, totalAvailable };
-    }
-
-    // ------------------------------------------------------------------
-    // Helper: apply ONE combined charge (USD) AFTER recipe generation
-    // Uses the first recipe_id as anchor if required, otherwise null
-    // ------------------------------------------------------------------
-    async function applyCombinedCharge(params: {
-      userId: string;
-      firstRecipeId: string | null;
-      costUsd: number;
-      snapshot: CreditSnapshot;
-    }) {
-      const { userId, firstRecipeId, costUsd, snapshot } = params;
-
-      const charge = Math.max(0, Number(costUsd || 0));
-      console.log("[credits] charge: start", { userId, firstRecipeId, charge, snapshot, requestId });
-
-      if (charge <= 0) {
-        console.log("[credits] charge: cost is 0, skipping", { requestId });
-        return;
-      }
-
-      if (snapshot.totalAvailable < charge) {
-        console.error("[credits] charge: insufficient based on snapshot", {
-          totalAvailable: snapshot.totalAvailable,
-          charge,
-          requestId,
-        });
-        throw new Error("Not enough credits");
-      }
-
-      const useFromBonus = Math.min(snapshot.bonusRemaining, charge);
-      const useFromWallet = charge - useFromBonus;
-
-      const newBonusUsage = snapshot.bonusUsage + useFromBonus;
-      const newBonusRemaining = Math.max(0, snapshot.dailyBonus - newBonusUsage);
-      const newWalletBalance = snapshot.walletBalance - useFromWallet;
-
-      console.log("[credits] charge: split", {
-        charge,
-        useFromBonus,
-        useFromWallet,
-        newBonusUsage,
-        newBonusRemaining,
-        newWalletBalance,
-        requestId,
-      });
-
-      // Update credit_bonus if bonus was used
-      if (useFromBonus > 0) {
-        const { data: existingBonus } = await supabase
-          .from("credit_bonus")
-          .select("user_id")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        if (!existingBonus) {
-          const { error: insBonusErr } = await supabase.from("credit_bonus").insert({
-            user_id: userId,
-            daily_bonus: snapshot.dailyBonus,
-            usage: newBonusUsage,
-            updated_at: new Date().toISOString(),
-          });
-          if (insBonusErr) {
-            console.error("[credits] charge: credit_bonus insert error", insBonusErr, { requestId });
-            throw new Error("Failed to update bonus credit");
-          }
-        } else {
-          const { error: updBonusErr } = await supabase
-            .from("credit_bonus")
-            .update({
-              usage: newBonusUsage,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("user_id", userId);
-
-          if (updBonusErr) {
-            console.error("[credits] charge: credit_bonus update error", updBonusErr, { requestId });
-            throw new Error("Failed to update bonus credit");
-          }
-        }
-      }
-
-      // Insert credit_usage rows
-      const now = new Date().toISOString();
-      const usageRows = [];
-
-      // If bonus used, insert income + cost rows for bonus portion
-      if (useFromBonus > 0) {
-        usageRows.push({
-          user_id: userId,
-          recipe_id: null, // null for combined charge
-          type: "income",
-          amount: useFromBonus,
-          reason: "bonus_credit",
-          created_at: now,
-        });
-        usageRows.push({
-          user_id: userId,
-          recipe_id: firstRecipeId, // Use first recipe as anchor if needed
-          type: "cost",
-          amount: useFromBonus,
-          reason: "generate_recipe", // Using existing reason for compatibility
-          created_at: now,
-        });
-      }
-
-      // Remaining cost from wallet
-      if (useFromWallet > 0) {
-        usageRows.push({
-          user_id: userId,
-          recipe_id: firstRecipeId,
-          type: "cost",
-          amount: useFromWallet,
-          reason: "generate_recipe",
-          created_at: now,
-        });
-      }
-
-      if (usageRows.length > 0) {
-        const { error: usageErr } = await supabase.from("credit_usage").insert(usageRows);
-        if (usageErr) {
-          console.error("[credits] charge: credit_usage insert error", usageErr, { requestId });
-          throw new Error("Failed to record credit usage");
-        }
-      }
-
-      // Update credit_wallet
-      const { error: walletUpdateErr } = await supabase
-        .from("credit_wallet")
-        .update({
-          balance: newWalletBalance,
-          daily_remaining: newBonusRemaining,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId);
-
-      if (walletUpdateErr) {
-        console.error("[credits] charge: credit_wallet update error", walletUpdateErr, { requestId });
-        throw new Error("Failed to update wallet");
-      }
-
-      console.log("[credits] charge: done", {
-        userId,
-        charge,
-        useFromBonus,
-        useFromWallet,
-        newWalletBalance,
-        newBonusRemaining,
-        requestId,
-      });
     }
 
     // -------------------- Auth: logged-in users only --------------------
@@ -472,15 +307,40 @@ Remember:
     // -------------------- Call OpenAI --------------------
     console.log("[openai] meal plan request start", { model: openaiModel, requestId });
 
-    const completion = await openai.chat.completions.create({
-      model: openaiModel,
-      max_tokens: MAX_OUTPUT_TOKENS,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.7,
-    });
+    let completion;
+    try {
+      completion = await openai.chat.completions.create({
+        model: openaiModel,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+      });
+    } catch (openaiError) {
+      const message = openaiError instanceof Error ? openaiError.message : String(openaiError);
+      // Some newer models only support /v1/responses. Retry with a chat-completions compatible model.
+      if (message.includes("supported in v1/responses")) {
+        const fallbackModel = "gpt-4o-mini";
+        console.warn("[openai] model incompatible with chat.completions, retrying with fallback", {
+          requestedModel: openaiModel,
+          fallbackModel,
+          requestId,
+        });
+        completion = await openai.chat.completions.create({
+          model: fallbackModel,
+          max_tokens: MAX_OUTPUT_TOKENS,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.7,
+        });
+      } else {
+        throw openaiError;
+      }
+    }
 
     const responseText = completion.choices[0]?.message?.content || "";
     console.log("[openai] raw meal plan response length:", responseText.length, { requestId });
@@ -521,6 +381,21 @@ Remember:
       });
     }
 
+    // Validate exactly one recipe per required slot.
+    const uniqueSlots = new Set(receivedSlots);
+    const hasExactlyRequiredSlots =
+      uniqueSlots.size === VALID_SLOTS.length && VALID_SLOTS.every((slot) => uniqueSlots.has(slot));
+    if (!hasExactlyRequiredSlots) {
+      console.error("[validation] missing/duplicate meal slots", { receivedSlots, requestId });
+      return new Response(
+        JSON.stringify({ error: "MODEL_JSON_PARSE_FAILED", detail: "Missing or duplicate meal slots" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     // Validate morning snack has time_minutes <= 10
     for (const recipe of mealPlan.recipes) {
       if (recipe.meal_slot === "snack_morning" && recipe.time_minutes > 10) {
@@ -541,24 +416,78 @@ Remember:
 
     console.log("[openai] usage", { inputTokens, outputTokens, totalTokens, totalCostUsd, requestId });
 
-    // -------------------- Clear existing meal plan for the target date --------------------
+    // -------------------- Save meal plan + charge atomically --------------------
     // Use the plan_date from the request payload (selected day), fallback to server UTC today
     const targetDate = payload.plan_date || new Date().toISOString().split("T")[0];
 
-    console.log("[db] clearing existing meal plan for target date", { userId, targetDate, requestId });
-    const { error: deleteError } = await supabase
-      .from("meal_plan")
-      .delete()
-      .eq("user_id", userId)
-      .eq("plan_date", targetDate);
+    const perRecipeInputTokens = Math.round(inputTokens / 5);
+    const perRecipeOutputTokens = Math.round(outputTokens / 5);
+    const perRecipeTotalTokens = Math.round(totalTokens / 5);
+    const perRecipeCost = totalCostUsd / 5;
 
-    if (deleteError) {
-      console.error("[db] error deleting existing meal plan", deleteError, { requestId });
-      // Continue anyway - not critical
+    const recipesPayload = mealPlan.recipes.map((recipe) => {
+      const parsedTime = Number(recipe.time_minutes);
+      const safeTimeMinutes = Number.isFinite(parsedTime) ? Math.max(1, Math.round(parsedTime)) : null;
+
+      const parsedServings = Number(recipe.servings ?? payload.servings ?? 2);
+      const safeServings = Number.isFinite(parsedServings) ? Math.max(1, Math.round(parsedServings)) : 2;
+
+      const safeIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+      const safeInstructions = Array.isArray(recipe.instructions)
+        ? recipe.instructions.map((step) => String(step))
+        : [];
+
+      return {
+        meal_slot: recipe.meal_slot,
+        title: recipe.title,
+        description_short: recipe.description_short,
+        description_long: recipe.description_long,
+        cuisine: payload.cuisine || recipe.cuisine || null,
+        time_minutes: safeTimeMinutes,
+        difficulty: recipe.difficulty || payload.difficulty || null,
+        servings: safeServings,
+        budget_level: payload.budget_level || recipe.budget_level || null,
+        kids_friendly: Boolean(recipe.kids_friendly),
+        ingredients: safeIngredients,
+        instructions: safeInstructions,
+        tips: recipe.tips,
+        nutrition_estimate: recipe.nutrition_estimate,
+        input_tokens: perRecipeInputTokens,
+        output_tokens: perRecipeOutputTokens,
+        total_tokens: perRecipeTotalTokens,
+        cost_usd: perRecipeCost,
+      };
+    });
+
+    const { data: rpcCreatedRecipes, error: rpcError } = await supabase.rpc("create_meal_plan_and_charge", {
+      p_user_id: userId,
+      p_plan_date: targetDate,
+      p_recipes_json: recipesPayload,
+      p_total_cost_usd: totalCostUsd,
+    });
+
+    if (rpcError) {
+      console.error("[db] atomic meal plan+charge RPC failed", rpcError, { requestId });
+      const msg = String(rpcError.message || "");
+      if (msg.includes("INSUFFICIENT_CREDITS")) {
+        return new Response(JSON.stringify({ error: "INSUFFICIENT_CREDITS" }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (msg.includes("CREDIT_WALLET_NOT_FOUND")) {
+        return new Response(JSON.stringify({ error: "Could not verify credit wallet" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "Failed to save meal plan and process credits atomically" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // -------------------- Insert recipes and meal plan --------------------
-    const createdRecipes: Array<{
+    let createdRecipes: Array<{
       meal_slot: string;
       recipe_id: string;
       title: string;
@@ -566,113 +495,34 @@ Remember:
       time_minutes: number;
       servings: number;
     }> = [];
-    const perRecipeCost = totalCostUsd / 5;
 
-    for (const recipe of mealPlan.recipes) {
-      // Map meal_slot to meal_category
-      const mealCategory = SLOT_TO_CATEGORY[recipe.meal_slot] || "lunch";
-
-      // Insert recipe
-      const { data: insertedRecipe, error: insertError } = await supabase
-        .from("recipe")
-        .insert({
-          title: recipe.title,
-          description_short: recipe.description_short,
-          description_long: recipe.description_long,
-          meal_category: mealCategory,
-          cuisine: payload.cuisine,
-          time_minutes: recipe.time_minutes,
-          difficulty: recipe.difficulty || payload.difficulty,
-          servings: recipe.servings,
-          budget_level: payload.budget_level,
-          kids_friendly: recipe.kids_friendly,
-          ingredients: recipe.ingredients,
-          instructions: recipe.instructions.join("\n"),
-          tips: recipe.tips,
-          nutrition_estimate: recipe.nutrition_estimate,
-          input_tokens: Math.round(inputTokens / 5),
-          output_tokens: Math.round(outputTokens / 5),
-          total_tokens: Math.round(totalTokens / 5),
-          cost_usd: perRecipeCost,
-        })
-        .select("id")
-        .single();
-
-      if (insertError) {
-        console.error("[db] error inserting recipe", insertError, { slot: recipe.meal_slot, requestId });
-        return new Response(JSON.stringify({ error: "Failed to save recipe" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+    if (Array.isArray(rpcCreatedRecipes)) {
+      createdRecipes = rpcCreatedRecipes as typeof createdRecipes;
+    } else if (typeof rpcCreatedRecipes === "string") {
+      try {
+        const parsed = JSON.parse(rpcCreatedRecipes);
+        if (Array.isArray(parsed)) {
+          createdRecipes = parsed as typeof createdRecipes;
+        }
+      } catch {
+        // ignore parse failure; handled below
       }
+    }
 
-      const recipeId = insertedRecipe.id;
-      console.log("[db] recipe saved", { recipeId, slot: recipe.meal_slot, requestId });
-
-      // Link recipe to user
-      const { error: linkError } = await supabase
-        .from("recipe_user")
-        .upsert(
-          { user_id: userId, recipe_id: recipeId, created_at: new Date().toISOString() },
-          { onConflict: "user_id,recipe_id" },
-        );
-
-      if (linkError) {
-        console.error("[recipe_user] failed", linkError, { requestId });
-        // Continue anyway
-      }
-
-      // Add to favorites
-      const { error: favError } = await supabase
-        .from("recipe_favorites")
-        .upsert(
-          { user_id: userId, recipe_id: recipeId, created_at: new Date().toISOString() },
-          { onConflict: "user_id,recipe_id" },
-        );
-
-      if (favError) {
-        console.error("[recipe_favorites] failed", favError, { requestId });
-        // Continue anyway
-      }
-
-      // Insert meal plan entry
-      const { error: mealPlanError } = await supabase.from("meal_plan").insert({
-        user_id: userId,
-        plan_date: targetDate,
-        meal_slot: recipe.meal_slot,
-        recipe_id: recipeId,
-      });
-
-      if (mealPlanError) {
-        console.error("[db] error inserting meal plan", mealPlanError, { slot: recipe.meal_slot, requestId });
-        // Continue anyway
-      }
-
-      createdRecipes.push({
-        meal_slot: recipe.meal_slot,
-        recipe_id: recipeId,
-        title: recipe.title,
-        meal_category: mealCategory,
-        time_minutes: recipe.time_minutes,
-        servings: recipe.servings,
+    if (createdRecipes.length === 0) {
+      console.error("[db] atomic meal plan+charge RPC returned no recipes", { requestId, rpcCreatedRecipes });
+      return new Response(JSON.stringify({ error: "Failed to save meal plan and process credits atomically" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // -------------------- Apply combined credit charge --------------------
-    const firstRecipeId = createdRecipes.length > 0 ? createdRecipes[0].recipe_id : null;
-
-    try {
-      await applyCombinedCharge({
-        userId,
-        firstRecipeId,
-        costUsd: totalCostUsd,
-        snapshot: creditSnapshot,
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Credit charge failed";
-      console.error("[credits] apply charge error", { msg, error: e, requestId });
-      // Recipes are already saved, return success but log error
-    }
+    console.log("[db] meal plan saved and charged atomically", {
+      userId,
+      targetDate,
+      recipeCount: createdRecipes.length,
+      requestId,
+    });
 
     // -------------------- Background image generation --------------------
     console.log("[images] starting background image generation", { count: createdRecipes.length, requestId });
@@ -727,8 +577,24 @@ Remember:
       });
     };
 
-    // Start background task without blocking response
-    EdgeRuntime.waitUntil(generateImagesInBackground());
+    // Start background task without blocking response.
+    // Some runtimes may not expose EdgeRuntime.waitUntil; in that case run without throwing.
+    try {
+      const edgeRuntime = (globalThis as unknown as {
+        EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void };
+      }).EdgeRuntime;
+      if (edgeRuntime?.waitUntil) {
+        edgeRuntime.waitUntil(generateImagesInBackground());
+      } else {
+        void generateImagesInBackground();
+      }
+    } catch (waitUntilError) {
+      console.warn("[images] failed to schedule waitUntil, continuing without blocking", {
+        error: waitUntilError,
+        requestId,
+      });
+      void generateImagesInBackground();
+    }
 
     // -------------------- Return response --------------------
     console.log("[response] returning success", { recipeCount: createdRecipes.length, requestId });
