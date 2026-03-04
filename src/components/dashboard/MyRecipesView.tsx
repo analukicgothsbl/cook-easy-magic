@@ -50,7 +50,7 @@ export function MyRecipesView() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isAdmin, setIsAdmin] = useState(false);
   const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
-  const [generatingGeminiFor, setGeneratingGeminiFor] = useState<string | null>(null);
+  
   const RECIPES_PER_PAGE = 8;
 
   const filteredAndSortedRecipes = useMemo(() => {
