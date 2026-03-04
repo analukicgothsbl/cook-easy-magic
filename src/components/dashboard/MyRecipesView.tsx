@@ -50,7 +50,7 @@ export function MyRecipesView() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isAdmin, setIsAdmin] = useState(false);
   const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
-  const [generatingGeminiFor, setGeneratingGeminiFor] = useState<string | null>(null);
+  
   const RECIPES_PER_PAGE = 8;
 
   const filteredAndSortedRecipes = useMemo(() => {
@@ -313,40 +313,6 @@ export function MyRecipesView() {
     }
   };
 
-  const generateGeminiImage = async (e: React.MouseEvent, recipeId: string) => {
-    e.stopPropagation();
-    if (!user || generatingGeminiFor) return;
-
-    setGeneratingGeminiFor(recipeId);
-    const loadingToast = toast.loading("Generating Gemini image...");
-
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-recipe-image-gemini", {
-        body: { recipe_id: recipeId },
-      });
-
-      toast.dismiss(loadingToast);
-
-      if (error || !data?.ok) {
-        console.error("Gemini image generation error:", error || data?.error, "request_id:", data?.request_id);
-        toast.error("Gemini image generation failed");
-        return;
-      }
-
-      setRecipeImages((prev) => ({
-        ...prev,
-        [recipeId]: data.image_url,
-      }));
-
-      toast.success("Gemini image generated successfully");
-    } catch (err) {
-      toast.dismiss(loadingToast);
-      console.error("Gemini image generation exception:", err);
-      toast.error("Gemini image generation failed");
-    } finally {
-      setGeneratingGeminiFor(null);
-    }
-  };
 
   const formatIngredient = (ing: string | Ingredient): string => {
     if (typeof ing === "string") return ing;
@@ -465,22 +431,6 @@ export function MyRecipesView() {
                     )}
                     <span className="ml-1 text-xs">
                       {generatingImageFor === recipe.id ? "Generating..." : "Generate OpenAI"}
-                    </span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="shadow-lg"
-                    onClick={(e) => generateGeminiImage(e, recipe.id)}
-                    disabled={generatingGeminiFor === recipe.id}
-                  >
-                    {generatingGeminiFor === recipe.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ImagePlus className="w-4 h-4" />
-                    )}
-                    <span className="ml-1 text-xs">
-                      {generatingGeminiFor === recipe.id ? "Generating..." : "Generate Gemini"}
                     </span>
                   </Button>
                 </div>
