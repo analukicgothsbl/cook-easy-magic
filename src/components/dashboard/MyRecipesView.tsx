@@ -433,22 +433,6 @@ export function MyRecipesView() {
                       {generatingImageFor === recipe.id ? "Generating..." : "Generate OpenAI"}
                     </span>
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="shadow-lg"
-                    onClick={(e) => generateGeminiImage(e, recipe.id)}
-                    disabled={generatingGeminiFor === recipe.id}
-                  >
-                    {generatingGeminiFor === recipe.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ImagePlus className="w-4 h-4" />
-                    )}
-                    <span className="ml-1 text-xs">
-                      {generatingGeminiFor === recipe.id ? "Generating..." : "Generate Gemini"}
-                    </span>
-                  </Button>
                 </div>
               )}
             </div>
