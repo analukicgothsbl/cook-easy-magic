@@ -66,7 +66,7 @@ const Dashboard = () => {
         
         try {
           const { data, error } = await supabase.functions.invoke('paypal-capture-order', {
-            body: { orderId: token },
+            body: { order_id: token },
           });
 
           toast.dismiss(loadingToast);

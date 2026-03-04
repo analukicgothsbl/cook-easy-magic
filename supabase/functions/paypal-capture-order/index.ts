@@ -67,8 +67,11 @@ serve(async (req) => {
       });
     }
 
-    // Parse request body
-    const { order_id } = await req.json();
+    // Parse request body (accept both snake_case and legacy camelCase)
+    const body = (await req.json()) as { order_id?: unknown; orderId?: unknown };
+    const order_id =
+      (typeof body.order_id === "string" ? body.order_id : typeof body.orderId === "string" ? body.orderId : "")
+        .trim();
 
     if (!order_id) {
       return new Response(JSON.stringify({ error: "Order ID is required" }), {
