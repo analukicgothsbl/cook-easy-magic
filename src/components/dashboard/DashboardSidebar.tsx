@@ -7,7 +7,9 @@ import {
   CalendarDays, 
   Settings, 
   LogOut,
-  Utensils
+  Utensils,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
