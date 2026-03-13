@@ -60,9 +60,9 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
+      <SidebarHeader className={cn("p-4 border-b border-sidebar-border", collapsed && "flex items-center justify-center")}>
         <div 
-          className="flex items-center gap-3 cursor-pointer" 
+          className={cn("flex items-center cursor-pointer", collapsed ? "justify-center" : "gap-3")}
           onClick={() => navigate('/')}
         >
           <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
