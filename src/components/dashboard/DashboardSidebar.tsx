@@ -12,6 +12,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -75,17 +76,17 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
 
       <SidebarContent>
         <SidebarGroup>
-          <div className="flex items-center justify-between px-2 py-1">
+          <div className={cn("flex items-center py-1", collapsed ? "justify-center px-0" : "justify-between px-2")}>
             {!collapsed && <SidebarGroupLabel className="p-0">Menu</SidebarGroupLabel>}
             <button
               onClick={toggleSidebar}
-              className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card shadow-sm hover:bg-accent transition-colors ml-auto"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm hover:bg-accent transition-colors"
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {collapsed ? (
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
               ) : (
-                <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
+                <ChevronLeft className="w-4 h-4 text-muted-foreground" />
               )}
             </button>
           </div>
