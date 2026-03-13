@@ -58,7 +58,20 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border relative group/sidebar-wrapper">
+      {/* Floating toggle button on sidebar edge */}
+      <button
+        onClick={toggleSidebar}
+        className="absolute -right-3 top-7 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card shadow-md hover:bg-accent transition-colors"
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {collapsed ? (
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+        ) : (
+          <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
+        )}
+      </button>
+
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div 
           className="flex items-center gap-3 cursor-pointer" 
@@ -108,22 +121,6 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
             <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={toggleSidebar}
-              tooltip={collapsed ? 'Expand' : 'Collapse'}
-              className="justify-center"
-            >
-              {collapsed ? (
-                <ChevronRight className="w-4 h-4" />
-              ) : (
-                <>
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Collapse</span>
-                </>
-              )}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
