@@ -50,83 +50,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const initializeUserData = async (userId: string, name: string) => {
-    // Create user_extended record with role
-    const { error: extendedError } = await supabase
-      .from('user_extended')
-      .insert({
-        user_id: userId,
-        name: name,
-        role: 'cook_master' as const,
-      });
-
-    if (extendedError) {
-      console.error('Error creating user_extended:', extendedError);
-    }
-
-
-    // Create credit_usage record for signup bonus
-    const { error: usageError } = await supabase
-      .from('credit_usage')
-      .insert({
-        user_id: userId,
-        recipe_id: null,
-        type: 'income',
-        amount: 5,
-        reason: 'signup_bonus',
-      });
-
-    if (usageError) {
-      console.error('Error creating credit_usage:', usageError);
-    }
-
-    // Create credit_bonus record
-    const { error: bonusError } = await supabase
-      .from('credit_bonus')
-      .insert({
-        user_id: userId,
-        daily_bonus: 1,
-        usage: 0,
-      });
-
-    if (bonusError) {
-      console.error('Error creating credit_bonus:', bonusError);
-    }
-
-    // Create credit_wallet record
-    const { error: walletError } = await supabase
-      .from('credit_wallet')
-      .insert({
-        user_id: userId,
-        balance: 5,
-        daily_remaining: 1,
-      });
-
-    if (walletError) {
-      console.error('Error creating credit_wallet:', walletError);
-    }
-
-    // Create user_options record with specified defaults
-    const { error: optionsError } = await supabase
-      .from('user_options')
-      .insert({
-        user_id: userId,
-        cuisine: null,
-        meal_category: null,
-        time_available: null,
-        difficulty: null,
-        kids_friendly: false,
-        budget_level: null,
-        servings: 2,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-
-    if (optionsError) {
-      console.error('Error creating user_options:', optionsError);
-    }
-  };
-
   const signUp = async (email: string, password: string, name: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -144,9 +67,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return { error };
       }
 
-      // If user was created successfully, initialize all related tables
-      if (data.user) {
-        await initializeUserData(data.user.id, name);
+      // User bootstrap records are created atomically by a DB trigger.
+      // We only need to ensure the auth user itself was created.
+      if (!data.user) {
+        return { error: new Error('User was not created. Please try again.') };
       }
 
       return { error: null };

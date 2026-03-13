@@ -19,6 +19,10 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import OpenAI from "https://esm.sh/openai@4.20.1";
+import {
+  generateRecipeEmbeddingsBatch,
+  findSimilarRecipes,
+} from "../_shared/dedup.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -416,8 +420,36 @@ Remember:
 
     console.log("[openai] usage", { inputTokens, outputTokens, totalTokens, totalCostUsd, requestId });
 
+    // -------------------- Embedding-based dedup for each recipe --------------------
+    let embeddings: number[][] = [];
+    const reusedRecipeIds: (string | null)[] = new Array(mealPlan.recipes.length).fill(null);
+
+    try {
+      embeddings = await generateRecipeEmbeddingsBatch(
+        openai,
+        mealPlan.recipes.map((r) => ({ title: r.title, ingredients: r.ingredients })),
+      );
+
+      const dedupPromises = embeddings.map((emb) => findSimilarRecipes(supabase, emb, userId));
+      const dedupResults = await Promise.all(dedupPromises);
+
+      for (let i = 0; i < dedupResults.length; i++) {
+        if (dedupResults[i].globalMatch) {
+          const match = dedupResults[i].globalMatch!;
+          console.log("[dedup] meal plan recipe reuse", {
+            slot: mealPlan.recipes[i].meal_slot,
+            matchId: match.recipe_id,
+            sim: match.similarity,
+            requestId,
+          });
+          reusedRecipeIds[i] = match.recipe_id;
+        }
+      }
+    } catch (dedupErr) {
+      console.error("[dedup] meal plan embedding dedup failed, proceeding without dedup", dedupErr, { requestId });
+    }
+
     // -------------------- Save meal plan + charge atomically --------------------
-    // Use the plan_date from the request payload (selected day), fallback to server UTC today
     const targetDate = payload.plan_date || new Date().toISOString().split("T")[0];
 
     const perRecipeInputTokens = Math.round(inputTokens / 5);
@@ -425,7 +457,7 @@ Remember:
     const perRecipeTotalTokens = Math.round(totalTokens / 5);
     const perRecipeCost = totalCostUsd / 5;
 
-    const recipesPayload = mealPlan.recipes.map((recipe) => {
+    const recipesPayload = mealPlan.recipes.map((recipe, idx) => {
       const parsedTime = Number(recipe.time_minutes);
       const safeTimeMinutes = Number.isFinite(parsedTime) ? Math.max(1, Math.round(parsedTime)) : null;
 
@@ -437,7 +469,7 @@ Remember:
         ? recipe.instructions.map((step) => String(step))
         : [];
 
-      return {
+      const entry: Record<string, unknown> = {
         meal_slot: recipe.meal_slot,
         title: recipe.title,
         description_short: recipe.description_short,
@@ -457,6 +489,14 @@ Remember:
         total_tokens: perRecipeTotalTokens,
         cost_usd: perRecipeCost,
       };
+
+      if (reusedRecipeIds[idx]) {
+        entry.existing_recipe_id = reusedRecipeIds[idx];
+      } else if (embeddings[idx]) {
+        entry.embedding = `[${embeddings[idx].join(",")}]`;
+      }
+
+      return entry;
     });
 
     const { data: rpcCreatedRecipes, error: rpcError } = await supabase.rpc("create_meal_plan_and_charge", {
@@ -525,17 +565,22 @@ Remember:
     });
 
     // -------------------- Background image generation --------------------
-    console.log("[images] starting background image generation", { count: createdRecipes.length, requestId });
+    // Skip image generation for reused recipes — they already have images.
+    const reusedIds = new Set(reusedRecipeIds.filter(Boolean));
+    const recipesNeedingImages = createdRecipes.filter((r) => !reusedIds.has(r.recipe_id));
+    console.log("[images] starting background image generation", {
+      total: createdRecipes.length,
+      needImages: recipesNeedingImages.length,
+      reused: reusedIds.size,
+      requestId,
+    });
 
-    // Use EdgeRuntime.waitUntil for background processing
-    // Generate all images IN PARALLEL to complete before function timeout
     const generateImagesInBackground = async () => {
       const authToken = authHeader || "";
 
-      console.log("[images] starting parallel image generation for all recipes", { requestId });
+      console.log("[images] starting parallel image generation for new recipes", { requestId });
 
-      // Generate all images in parallel using Promise.allSettled
-      const imagePromises = createdRecipes.map(async (recipe) => {
+      const imagePromises = recipesNeedingImages.map(async (recipe) => {
         try {
           console.log("[images] generating image for recipe", { recipeId: recipe.recipe_id, requestId });
 
@@ -571,8 +616,9 @@ Remember:
       const results = await Promise.allSettled(imagePromises);
       const successCount = results.filter((r) => r.status === "fulfilled" && r.value?.success).length;
       console.log("[images] background image generation complete", {
-        total: createdRecipes.length,
+        total: recipesNeedingImages.length,
         successful: successCount,
+        reusedSkipped: reusedIds.size,
         requestId,
       });
     };

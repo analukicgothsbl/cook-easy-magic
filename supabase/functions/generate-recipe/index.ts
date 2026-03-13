@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import OpenAI from "https://esm.sh/openai@4.20.1";
+import {
+  checkRecipeDuplicate,
+  type SimilarRecipeMatch,
+} from "../_shared/dedup.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +20,9 @@ interface RecipePayload {
   budget_level: string | null;
   kids_friendly: boolean | null;
   guest_id: string | null;
-  force_save?: boolean; // skip duplicate check when user confirms
+  force_save?: boolean;
+  recipe_to_save?: GeneratedRecipe;
+  original_cost_usd?: number;
 }
 
 interface Ingredient {
@@ -65,67 +71,8 @@ type CreditSnapshot = {
   totalAvailable: number;
 };
 
-// -------------------- DUPLICATE DETECTION HELPERS --------------------
-
-/** Normalize a string for comparison: lowercase, trim, remove extra spaces */
-function normalize(s: string): string {
-  return s.toLowerCase().trim().replace(/\s+/g, " ");
-}
-
-/** Simple title similarity using word overlap (Jaccard-like) */
-function titleSimilarity(a: string, b: string): number {
-  const wordsA = new Set(normalize(a).split(" ").filter(w => w.length > 2));
-  const wordsB = new Set(normalize(b).split(" ").filter(w => w.length > 2));
-  if (wordsA.size === 0 && wordsB.size === 0) return 1;
-  if (wordsA.size === 0 || wordsB.size === 0) return 0;
-  let intersection = 0;
-  for (const w of wordsA) {
-    if (wordsB.has(w)) intersection++;
-  }
-  const union = new Set([...wordsA, ...wordsB]).size;
-  return union === 0 ? 0 : intersection / union;
-}
-
-/** Extract ingredient names from a recipe's ingredients array */
-function extractIngredientNames(ingredients: unknown[]): Set<string> {
-  const names = new Set<string>();
-  for (const ing of ingredients) {
-    if (typeof ing === "string") {
-      names.add(normalize(ing));
-    } else if (ing && typeof ing === "object" && "name" in ing) {
-      names.add(normalize((ing as { name: string }).name));
-    }
-  }
-  return names;
-}
-
-/** Ingredient overlap ratio (Jaccard) */
-function ingredientOverlap(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 && b.size === 0) return 1;
-  if (a.size === 0 || b.size === 0) return 0;
-  let intersection = 0;
-  for (const name of a) {
-    if (b.has(name)) intersection++;
-  }
-  const union = new Set([...a, ...b]).size;
-  return union === 0 ? 0 : intersection / union;
-}
-
-interface SimilarRecipe {
-  id: string;
-  title: string;
-  title_similarity: number;
-  ingredient_overlap: number;
-}
-
 interface RecipeWithTitle {
   title: string;
-}
-
-interface ExistingRecipeForSimilarity {
-  id: string;
-  title: string;
-  ingredients: unknown[];
 }
 
 function parseRecipeWithTitle(value: unknown): RecipeWithTitle | null {
@@ -133,24 +80,6 @@ function parseRecipeWithTitle(value: unknown): RecipeWithTitle | null {
   const record = value as Record<string, unknown>;
   return typeof record.title === "string" ? { title: record.title } : null;
 }
-
-function parseExistingRecipeForSimilarity(value: unknown): ExistingRecipeForSimilarity | null {
-  if (!value || typeof value !== "object") return null;
-  const record = value as Record<string, unknown>;
-  if (typeof record.id !== "string" || typeof record.title !== "string") {
-    return null;
-  }
-
-  return {
-    id: record.id,
-    title: record.title,
-    ingredients: Array.isArray(record.ingredients) ? record.ingredients : [],
-  };
-}
-
-// Thresholds
-const TITLE_SIMILARITY_THRESHOLD = 0.6;
-const INGREDIENT_OVERLAP_THRESHOLD = 0.7;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -285,39 +214,51 @@ Deno.serve(async (req) => {
       }
     }
 
-    // -------------------- Build prompts --------------------
-    const cuisineLabel = payload.cuisine === "any_surprise_me" ? "any cuisine (surprise me)" : payload.cuisine;
-    const timeLabel = payload.time_available === "minimum" ? "quick (under 20 minutes)" : "normal cooking time";
-    const difficultyLabel = payload.difficulty || "any difficulty";
-    const budgetLabel = payload.budget_level || "normal budget";
-    const kidsFriendlyLabel = payload.kids_friendly ? "kid-friendly" : "for adults";
+    // -------------------- recipe_to_save shortcut (force-save already-generated recipe) ---
+    let recipe: GeneratedRecipe;
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let totalTokens = 0;
+    let costUsd = 0;
 
-    // -------------------- Fetch user's recent recipes to guide AI --------------------
-    let recentTitles: string[] = [];
-    if (userId) {
-      const { data: recentRecipes } = await supabase
-        .from("recipe_user")
-        .select("recipe_id, recipe:recipe_id(title)")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(20);
+    if (payload.force_save && payload.recipe_to_save) {
+      recipe = payload.recipe_to_save;
+      costUsd = payload.original_cost_usd ?? 0;
+      console.log("[force_save] using recipe_to_save, skipping OpenAI", { title: recipe.title, costUsd });
+    } else {
+      // -------------------- Build prompts --------------------
+      const cuisineLabel = payload.cuisine === "any_surprise_me" ? "any cuisine (surprise me)" : payload.cuisine;
+      const timeLabel = payload.time_available === "minimum" ? "quick (under 20 minutes)" : "normal cooking time";
+      const difficultyLabel = payload.difficulty || "any difficulty";
+      const budgetLabel = payload.budget_level || "normal budget";
+      const kidsFriendlyLabel = payload.kids_friendly ? "kid-friendly" : "for adults";
 
-      if (recentRecipes) {
-        recentTitles = recentRecipes
-          .map((row) => {
-            if (!row || typeof row !== "object" || !("recipe" in row)) return null;
-            const recipe = parseRecipeWithTitle((row as { recipe?: unknown }).recipe);
-            return recipe?.title ?? null;
-          })
-          .filter((t): t is string => typeof t === "string" && t.length > 0);
+      // Fetch user's recent recipes to guide AI towards variety.
+      let recentTitles: string[] = [];
+      if (userId) {
+        const { data: recentRecipes } = await supabase
+          .from("recipe_user")
+          .select("recipe_id, recipe:recipe_id(title)")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (recentRecipes) {
+          recentTitles = recentRecipes
+            .map((row) => {
+              if (!row || typeof row !== "object" || !("recipe" in row)) return null;
+              const r = parseRecipeWithTitle((row as { recipe?: unknown }).recipe);
+              return r?.title ?? null;
+            })
+            .filter((t): t is string => typeof t === "string" && t.length > 0);
+        }
       }
-    }
 
-    const avoidDuplicatesNote = recentTitles.length > 0
-      ? `\n\nIMPORTANT: The user already has these recipes. Create something DIFFERENT (different title, different approach): ${recentTitles.slice(0, 10).join(", ")}`
-      : "";
+      const avoidDuplicatesNote = recentTitles.length > 0
+        ? `\n\nIMPORTANT: The user already has these recipes. Create something DIFFERENT (different title, different approach): ${recentTitles.slice(0, 10).join(", ")}`
+        : "";
 
-    const systemPrompt = `You are a professional chef and recipe creator. Generate a delicious, practical recipe based on the user's ingredients and preferences.
+      const systemPrompt = `You are a professional chef and recipe creator. Generate a delicious, practical recipe based on the user's ingredients and preferences.
 
 Respond ONLY with a valid JSON object (no markdown, no extra text) with this exact structure:
 {
@@ -347,7 +288,7 @@ Respond ONLY with a valid JSON object (no markdown, no extra text) with this exa
   }
 }`;
 
-    const userPrompt = `Create a ${payload.meal_category || "meal"} recipe using these ingredients: ${payload.ingredients.join(", ")}.
+      const userPrompt = `Create a ${payload.meal_category || "meal"} recipe using these ingredients: ${payload.ingredients.join(", ")}.
 
 Preferences:
 - Cuisine: ${cuisineLabel}
@@ -359,94 +300,141 @@ Preferences:
 
 You may add common pantry staples (salt, pepper, oil, common spices) if needed, but focus on the provided ingredients.${avoidDuplicatesNote}`;
 
-    // -------------------- Call OpenAI (recipe) --------------------
-    console.log("[openai] recipe request start", { model: openaiModel });
+      // -------------------- Call OpenAI (recipe) --------------------
+      console.log("[openai] recipe request start", { model: openaiModel });
 
-    const completion = await openai.chat.completions.create({
-      model: openaiModel,
-      max_tokens: 2000,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.7, // slightly higher for more variety
-    });
-
-    const responseText = completion.choices[0]?.message?.content || "";
-    console.log("[openai] raw recipe response", responseText);
-
-    // -------------------- Parse JSON response --------------------
-    let recipe: GeneratedRecipe;
-    try {
-      const cleanedResponse = responseText.replace(/```json\n?|\n?```/g, "").trim();
-      recipe = JSON.parse(cleanedResponse);
-    } catch {
-      console.error("[openai] failed to parse recipe JSON", responseText);
-      return new Response(JSON.stringify({ error: "Failed to generate recipe. Please try again." }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const completion = await openai.chat.completions.create({
+        model: openaiModel,
+        max_tokens: 2000,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
       });
+
+      const responseText = completion.choices[0]?.message?.content || "";
+      console.log("[openai] raw recipe response", responseText);
+
+      // -------------------- Parse JSON response --------------------
+      try {
+        const cleanedResponse = responseText.replace(/```json\n?|\n?```/g, "").trim();
+        recipe = JSON.parse(cleanedResponse);
+      } catch {
+        console.error("[openai] failed to parse recipe JSON", responseText);
+        return new Response(JSON.stringify({ error: "Failed to generate recipe. Please try again." }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      inputTokens = completion.usage?.prompt_tokens || 0;
+      outputTokens = completion.usage?.completion_tokens || 0;
+      totalTokens = inputTokens + outputTokens;
+      costUsd = calcCostUsd(inputTokens, outputTokens);
+
+      console.log("[openai] usage", { inputTokens, outputTokens, totalTokens, costUsd });
     }
 
-    // -------------------- Token usage and USD cost --------------------
-    const inputTokens = completion.usage?.prompt_tokens || 0;
-    const outputTokens = completion.usage?.completion_tokens || 0;
-    const totalTokens = inputTokens + outputTokens;
-    const costUsd = calcCostUsd(inputTokens, outputTokens);
+    // -------------------- EMBEDDING-BASED DUPLICATE DETECTION --------------------
+    let dedupResult: Awaited<ReturnType<typeof checkRecipeDuplicate>> | null = null;
+    try {
+      dedupResult = await checkRecipeDuplicate(
+        openai, supabase, recipe.title, recipe.ingredients, userId,
+      );
+    } catch (dedupErr) {
+      console.error("[dedup] embedding dedup failed, proceeding without dedup", dedupErr);
+    }
 
-    console.log("[openai] usage", { inputTokens, outputTokens, totalTokens, costUsd });
+    const embeddingVector = dedupResult?.embedding ?? null;
 
-    // -------------------- DUPLICATE DETECTION (for logged-in users) --------------------
-    if (userId && !payload.force_save) {
-      // Fetch user's existing recipes for comparison
-      const { data: userRecipes } = await supabase
-        .from("recipe_user")
-        .select("recipe_id, recipe:recipe_id(id, title, ingredients)")
-        .eq("user_id", userId);
+    // Global reuse: a very similar recipe already exists in the DB.
+    if (dedupResult?.globalMatch) {
+      const match = dedupResult.globalMatch;
+      console.log("[dedup] global reuse", { matchId: match.recipe_id, sim: match.similarity });
 
-      if (userRecipes && userRecipes.length > 0) {
-        const newIngredientNames = extractIngredientNames(recipe.ingredients || []);
-        const similarRecipes: SimilarRecipe[] = [];
+      if (userId) {
+        // Link the existing recipe to this user and charge credits.
+        const { data: rpcRecipeId, error: rpcError } = await supabase.rpc("create_recipe_and_charge", {
+          p_user_id: userId,
+          p_title: recipe.title,
+          p_description_short: recipe.description_short,
+          p_description_long: recipe.description_long,
+          p_meal_category: payload.meal_category,
+          p_cuisine: payload.cuisine,
+          p_time_minutes: recipe.time_minutes,
+          p_difficulty: recipe.difficulty || payload.difficulty,
+          p_servings: recipe.servings,
+          p_budget_level: payload.budget_level,
+          p_kids_friendly: recipe.kids_friendly,
+          p_ingredients_json: recipe.ingredients,
+          p_instructions: Array.isArray(recipe.instructions) ? recipe.instructions.join("\n") : "",
+          p_tips: recipe.tips,
+          p_nutrition_estimate: recipe.nutrition_estimate,
+          p_input_ingredients_json: payload.ingredients,
+          p_input_tokens: inputTokens,
+          p_output_tokens: outputTokens,
+          p_total_tokens: totalTokens,
+          p_cost_usd: costUsd,
+          p_existing_recipe_id: match.recipe_id,
+        });
 
-        for (const row of userRecipes) {
-          if (!row || typeof row !== "object" || !("recipe" in row)) continue;
-          const existing = parseExistingRecipeForSimilarity((row as { recipe?: unknown }).recipe);
-          if (!existing) continue;
-
-          const tSim = titleSimilarity(recipe.title, existing.title);
-          const existingIngNames = extractIngredientNames(existing.ingredients);
-          const iOverlap = ingredientOverlap(newIngredientNames, existingIngNames);
-
-          // Flag if title is very similar OR ingredient overlap is high
-          if (tSim >= TITLE_SIMILARITY_THRESHOLD || iOverlap >= INGREDIENT_OVERLAP_THRESHOLD) {
-            similarRecipes.push({
-              id: existing.id,
-              title: existing.title,
-              title_similarity: Math.round(tSim * 100),
-              ingredient_overlap: Math.round(iOverlap * 100),
-            });
-          }
+        if (rpcError) {
+          console.error("[db] reuse RPC failed", rpcError);
+          return new Response(JSON.stringify({ error: "Failed to save recipe" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
 
-        if (similarRecipes.length > 0) {
-          console.log("[duplicate] similar recipes found", similarRecipes);
-          // Return the generated recipe + warning, WITHOUT saving
-          return new Response(
-            JSON.stringify({
-              duplicate_warning: true,
-              similar_recipes: similarRecipes.slice(0, 3), // top 3
-              recipe,
-              usage: { inputTokens, outputTokens, totalTokens, costUsd },
-            }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
+        const reusedId = typeof rpcRecipeId === "string" ? rpcRecipeId : match.recipe_id;
+        return new Response(
+          JSON.stringify({
+            recipe_id: reusedId,
+            recipe: { ...recipe, id: reusedId },
+            reused_existing: true,
+            usage: { inputTokens, outputTokens, totalTokens, costUsd },
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      } else {
+        // Guest: reuse without inserting a new row.
+        return new Response(
+          JSON.stringify({
+            recipe_id: match.recipe_id,
+            recipe: { ...recipe, id: match.recipe_id },
+            reused_existing: true,
+            usage: { inputTokens, outputTokens, totalTokens, costUsd },
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
     }
+
+    // Per-user duplicate warning (logged-in, not force_save).
+    if (userId && !payload.force_save && dedupResult && dedupResult.userMatches.length > 0) {
+      const similarRecipes = dedupResult.userMatches.slice(0, 3).map((m: SimilarRecipeMatch) => ({
+        id: m.recipe_id,
+        title: m.recipe_title,
+        similarity: Math.round(m.similarity * 100),
+      }));
+
+      console.log("[dedup] per-user warning", similarRecipes);
+      return new Response(
+        JSON.stringify({
+          duplicate_warning: true,
+          similar_recipes: similarRecipes,
+          recipe,
+          usage: { inputTokens, outputTokens, totalTokens, costUsd },
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // -------------------- No duplicate — save new recipe --------------------
     const instructionsText = Array.isArray(recipe.instructions) ? recipe.instructions.join("\n") : "";
+    const embeddingStr = embeddingVector ? `[${embeddingVector.join(",")}]` : null;
     let recipeId: string | null = null;
 
     if (userId) {
-      // Logged-in users: save recipe + charge credits in one DB transaction via RPC.
       const { data: rpcRecipeId, error: rpcError } = await supabase.rpc("create_recipe_and_charge", {
         p_user_id: userId,
         p_title: recipe.title,
@@ -468,6 +456,7 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
         p_output_tokens: outputTokens,
         p_total_tokens: totalTokens,
         p_cost_usd: costUsd,
+        p_embedding: embeddingStr,
       });
 
       if (rpcError) {
@@ -505,30 +494,35 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
 
       console.log("[db] recipe saved and charged atomically", { recipeId, userId });
     } else {
-      // Guests: save recipe only (no credit charge).
+      // Guests: save recipe only (no credit charge), with embedding.
+      const insertPayload: Record<string, unknown> = {
+        title: recipe.title,
+        description_short: recipe.description_short,
+        description_long: recipe.description_long,
+        meal_category: payload.meal_category,
+        cuisine: payload.cuisine,
+        time_minutes: recipe.time_minutes,
+        difficulty: recipe.difficulty || payload.difficulty,
+        servings: recipe.servings,
+        budget_level: payload.budget_level,
+        kids_friendly: recipe.kids_friendly,
+        ingredients: recipe.ingredients,
+        instructions: instructionsText,
+        tips: recipe.tips,
+        nutrition_estimate: recipe.nutrition_estimate,
+        input_ingredients: payload.ingredients,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: totalTokens,
+        cost_usd: costUsd,
+      };
+      if (embeddingStr) {
+        insertPayload.embedding = embeddingStr;
+      }
+
       const { data: insertedRecipe, error: insertError } = await supabase
         .from("recipe")
-        .insert({
-          title: recipe.title,
-          description_short: recipe.description_short,
-          description_long: recipe.description_long,
-          meal_category: payload.meal_category,
-          cuisine: payload.cuisine,
-          time_minutes: recipe.time_minutes,
-          difficulty: recipe.difficulty || payload.difficulty,
-          servings: recipe.servings,
-          budget_level: payload.budget_level,
-          kids_friendly: recipe.kids_friendly,
-          ingredients: recipe.ingredients,
-          instructions: instructionsText,
-          tips: recipe.tips,
-          nutrition_estimate: recipe.nutrition_estimate,
-          input_ingredients: payload.ingredients,
-          input_tokens: inputTokens,
-          output_tokens: outputTokens,
-          total_tokens: totalTokens,
-          cost_usd: costUsd,
-        })
+        .insert(insertPayload)
         .select("id")
         .single();
 
@@ -542,6 +536,7 @@ You may add common pantry staples (salt, pepper, oil, common spices) if needed, 
       recipeId = insertedRecipe.id;
       console.log("[db] guest recipe saved", { recipeId });
     }
+
     // -------------------- Guest: mark as used --------------------
     if (!userId && payload.guest_id) {
       const { data: existingGuest } = await supabase

@@ -221,7 +221,7 @@ export const RecipeCard = ({
     let pollCount = 0;
     const maxPolls = 60; // Poll for up to 60 seconds
     const pollInterval = 1000; // Poll every second
-    let intervalId: NodeJS.Timeout | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
     const fetchImage = async () => {
       try {

@@ -43,17 +43,15 @@ Deno.serve(async (req) => {
         return user.id;
       },
       isAdmin: async (userId: string) => {
-        const { data, error } = await adminClient
-          .from("user_extended")
-          .select("role")
-          .eq("user_id", userId)
-          .maybeSingle();
+        const { data, error } = await adminClient.rpc("is_admin", {
+          _user_id: userId,
+        });
 
         if (error) {
           throw new Error(`Failed to verify admin role: ${error.message}`);
         }
 
-        return data?.role === "admin";
+        return Boolean(data);
       },
       findUserIdByEmail: async (email: string) => {
         const normalizedEmail = email.toLowerCase();

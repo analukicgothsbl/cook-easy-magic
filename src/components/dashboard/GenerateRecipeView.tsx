@@ -9,14 +9,14 @@ import { Button } from "@/components/ui/button";
 interface SimilarRecipe {
   id: string;
   title: string;
-  title_similarity: number;
-  ingredient_overlap: number;
+  similarity: number;
 }
 
 interface DuplicateWarning {
   recipe: Recipe;
   similarRecipes: SimilarRecipe[];
   formData: RecipeFormData;
+  costUsd: number;
 }
 
 export function GenerateRecipeView() {
@@ -158,6 +158,7 @@ export function GenerateRecipeView() {
           recipe: responseData.recipe,
           similarRecipes: responseData.similar_recipes || [],
           formData: data,
+          costUsd: responseData.usage?.costUsd ?? 0,
         });
         return;
       }
@@ -167,7 +168,9 @@ export function GenerateRecipeView() {
         const createdRecipeId = responseData.recipe_id;
         setRecipeId(createdRecipeId);
         setRecipe(responseData.recipe);
-        if (createdRecipeId) triggerImageGeneration(createdRecipeId);
+        if (createdRecipeId && !responseData.reused_existing) {
+          triggerImageGeneration(createdRecipeId);
+        }
       } else {
         setErrorMsg("Failed to generate recipe. Please try again.");
       }
@@ -181,12 +184,19 @@ export function GenerateRecipeView() {
 
   const handleForceSave = async () => {
     if (!duplicateWarning) return;
+    const savedWarning = duplicateWarning;
     setIsForceSaving(true);
     setDuplicateWarning(null);
     setIsLoading(true);
 
     try {
-      const payload = { ...duplicateWarning.formData, guest_id: null, force_save: true };
+      const payload = {
+        ...savedWarning.formData,
+        guest_id: null,
+        force_save: true,
+        recipe_to_save: savedWarning.recipe,
+        original_cost_usd: savedWarning.costUsd,
+      };
 
       const { data: responseData, error } = await supabase.functions.invoke("generate-recipe", {
         body: payload,
@@ -201,7 +211,9 @@ export function GenerateRecipeView() {
         const createdRecipeId = responseData.recipe_id;
         setRecipeId(createdRecipeId);
         setRecipe(responseData.recipe);
-        if (createdRecipeId) triggerImageGeneration(createdRecipeId);
+        if (createdRecipeId && !responseData.reused_existing) {
+          triggerImageGeneration(createdRecipeId);
+        }
       }
     } catch (err) {
       console.error("Force save error:", err);
@@ -268,18 +280,9 @@ export function GenerateRecipeView() {
                     <div key={sr.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                       <div className="flex-1">
                         <p className="text-sm font-medium text-foreground">{sr.title}</p>
-                        <div className="flex gap-3 mt-1">
-                          {sr.title_similarity > 0 && (
-                            <span className="text-xs text-muted-foreground">
-                              Title match: <span className="font-medium text-amber-600 dark:text-amber-400">{sr.title_similarity}%</span>
-                            </span>
-                          )}
-                          {sr.ingredient_overlap > 0 && (
-                            <span className="text-xs text-muted-foreground">
-                              Ingredients overlap: <span className="font-medium text-amber-600 dark:text-amber-400">{sr.ingredient_overlap}%</span>
-                            </span>
-                          )}
-                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          Similarity: <span className="font-medium text-amber-600 dark:text-amber-400">{sr.similarity}%</span>
+                        </span>
                       </div>
                     </div>
                   ))}

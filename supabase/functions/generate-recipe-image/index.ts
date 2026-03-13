@@ -116,13 +116,15 @@ Deno.serve(async (req) => {
     }
 
     // For authenticated users, check if user is admin OR owns the recipe.
-    const { data: userExt } = await adminClient
-      .from("user_extended")
-      .select("role")
-      .eq("user_id", authedUserId)
-      .maybeSingle();
+    const { data: isAdminResult, error: isAdminError } = await adminClient.rpc("is_admin", {
+      _user_id: authedUserId,
+    });
+    if (isAdminError) {
+      console.error("[generate-recipe-image] Failed to verify admin role", { requestId, isAdminError });
+      return jsonResponse(500, { error: "Failed to verify admin role", request_id: requestId });
+    }
 
-    const isAdmin = userExt?.role === "admin";
+    const isAdmin = Boolean(isAdminResult);
 
     // If not admin, check if user owns this recipe.
     if (!isAdmin) {

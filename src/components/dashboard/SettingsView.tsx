@@ -429,96 +429,25 @@ export function SettingsView({ initialTab, onTabChange }: SettingsViewProps) {
         return;
       }
 
-      const resolverPayload = userIdentifier.includes('@')
+      const lookupPayload = userIdentifier.includes('@')
         ? { email: userIdentifier }
         : { user_id: userIdentifier };
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        throw new Error('Your session is missing. Please sign out and sign in again.');
-      }
-
-      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-resolve-user-id`;
-      const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      if (!import.meta.env.VITE_SUPABASE_URL || !publishableKey) {
-        throw new Error('Supabase environment variables are missing in the frontend.');
-      }
-
-      const resolverResponse = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: publishableKey,
-          'Content-Type': 'application/json',
+      const { data, error } = await supabase.functions.invoke('admin-manage-credits', {
+        body: {
+          ...lookupPayload,
+          type: manageType,
+          amount,
+          reason: manageReason,
         },
-        body: JSON.stringify(resolverPayload),
       });
 
-      const resolverBody = await resolverResponse.json().catch(() => null);
-
-      if (!resolverResponse.ok) {
-        if (resolverBody && typeof resolverBody.error === 'string') {
-          throw new Error(resolverBody.error);
-        }
-        throw new Error(`Resolve user request failed (${resolverResponse.status})`);
+      if (error) {
+        throw new Error(error.message || 'Failed to manage credits.');
       }
 
-      const targetUserId = typeof resolverBody?.user_id === 'string' ? resolverBody.user_id : null;
-      if (!targetUserId) {
-        throw new Error('Failed to resolve target user');
-      }
-
-      // Insert credit usage record
-      const { error: usageError } = await supabase
-        .from('credit_usage')
-        .insert({
-          user_id: targetUserId,
-          type: manageType,
-          amount: amount,
-          reason: manageReason,
-          created_at: new Date().toISOString(),
-        });
-
-      if (usageError) throw usageError;
-
-      // Get current wallet balance
-      const { data: currentWallet } = await supabase
-        .from('credit_wallet')
-        .select('balance')
-        .eq('user_id', targetUserId)
-        .maybeSingle();
-
-      const currentBalance = currentWallet?.balance || 0;
-      const newBalance = manageType === 'income' 
-        ? currentBalance + amount 
-        : currentBalance - amount;
-
-      // Update or insert wallet
-      if (currentWallet) {
-        const { error: walletError } = await supabase
-          .from('credit_wallet')
-          .update({ 
-            balance: newBalance,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', targetUserId);
-
-        if (walletError) throw walletError;
-      } else {
-        const { error: walletError } = await supabase
-          .from('credit_wallet')
-          .insert({
-            user_id: targetUserId,
-            balance: newBalance,
-            daily_remaining: 0,
-            updated_at: new Date().toISOString(),
-          });
-
-        if (walletError) throw walletError;
+      if (!data?.ok) {
+        throw new Error(typeof data?.error === 'string' ? data.error : 'Failed to manage credits.');
       }
 
       toast.success(`Successfully ${manageType === 'income' ? 'added' : 'deducted'} ${amount} credits`);

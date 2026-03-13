@@ -213,6 +213,7 @@ export type Database = {
           description_long: string | null
           description_short: string | null
           difficulty: Database["public"]["Enums"]["difficulty_level"] | null
+          embedding: string | null
           id: string
           ingredients: Json[] | null
           input_ingredients: string[] | null
@@ -236,6 +237,7 @@ export type Database = {
           description_long?: string | null
           description_short?: string | null
           difficulty?: Database["public"]["Enums"]["difficulty_level"] | null
+          embedding?: string | null
           id?: string
           ingredients?: Json[] | null
           input_ingredients?: string[] | null
@@ -259,6 +261,7 @@ export type Database = {
           description_long?: string | null
           description_short?: string | null
           difficulty?: Database["public"]["Enums"]["difficulty_level"] | null
+          embedding?: string | null
           id?: string
           ingredients?: Json[] | null
           input_ingredients?: string[] | null
