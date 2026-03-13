@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { OverviewView } from '@/components/dashboard/OverviewView';
 import { GenerateRecipeView } from '@/components/dashboard/GenerateRecipeView';
@@ -134,7 +134,6 @@ const Dashboard = () => {
         <DashboardSidebar activeView={activeView} onViewChange={setActiveView} />
         <main className="flex-1 flex flex-col min-h-screen">
           <header className="h-14 flex items-center border-b border-border px-4 bg-card">
-            <SidebarTrigger className="mr-4" />
             <h1 className="text-lg font-semibold text-foreground capitalize">
               {activeView.replace('-', ' ').replace('settings ', '')}
             </h1>
