@@ -7,7 +7,9 @@ import {
   CalendarDays, 
   Settings, 
   LogOut,
-  Utensils
+  Utensils,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,7 +46,7 @@ const mainMenuItems = [
 ];
 
 export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarProps) {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === 'collapsed';
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
@@ -62,7 +64,7 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
           className="flex items-center gap-3 cursor-pointer" 
           onClick={() => navigate('/')}
         >
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
             <ChefHat className="w-5 h-5 text-primary-foreground" />
           </div>
           {!collapsed && (
@@ -73,7 +75,7 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          {!collapsed && <SidebarGroupLabel>Menu</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuItems.map((item) => (
@@ -93,9 +95,9 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
+      <SidebarFooter className="border-t border-sidebar-border">
         {!collapsed && user && (
-          <div className="mb-3 px-2">
+          <div className="mb-1 px-4 pt-3">
             <p className="text-sm font-medium text-sidebar-foreground truncate">
               {user.email}
             </p>
@@ -106,6 +108,22 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
             <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={toggleSidebar}
+              tooltip={collapsed ? 'Expand' : 'Collapse'}
+              className="justify-center"
+            >
+              {collapsed ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <>
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Collapse</span>
+                </>
+              )}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
