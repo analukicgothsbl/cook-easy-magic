@@ -58,11 +58,68 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border relative group/sidebar-wrapper">
-      {/* Floating toggle button on sidebar edge */}
+    <>
+      <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+        <SidebarHeader className="p-4 border-b border-sidebar-border">
+          <div 
+            className="flex items-center gap-3 cursor-pointer" 
+            onClick={() => navigate('/')}
+          >
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+              <ChefHat className="w-5 h-5 text-primary-foreground" />
+            </div>
+            {!collapsed && (
+              <span className="font-bold text-lg text-sidebar-foreground">Cook Master</span>
+            )}
+          </div>
+        </SidebarHeader>
+
+        <SidebarContent>
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Menu</SidebarGroupLabel>}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {mainMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => onViewChange(item.id)}
+                      isActive={activeView === item.id}
+                      tooltip={item.title}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter className="border-t border-sidebar-border">
+          {!collapsed && user && (
+            <div className="mb-1 px-4 pt-3">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
+                {user.email}
+              </p>
+            </div>
+          )}
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+
+      {/* Floating toggle button positioned on the sidebar edge */}
       <button
         onClick={toggleSidebar}
-        className="absolute -right-3 top-7 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card shadow-md hover:bg-accent transition-colors"
+        className="fixed top-7 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card shadow-md hover:bg-accent transition-all"
+        style={{ left: collapsed ? 'calc(var(--sidebar-width-icon) - 12px)' : 'calc(var(--sidebar-width) - 12px)' }}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {collapsed ? (
@@ -71,60 +128,6 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
           <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
         )}
       </button>
-
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div 
-          className="flex items-center gap-3 cursor-pointer" 
-          onClick={() => navigate('/')}
-        >
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-            <ChefHat className="w-5 h-5 text-primary-foreground" />
-          </div>
-          {!collapsed && (
-            <span className="font-bold text-lg text-sidebar-foreground">Cook Master</span>
-          )}
-        </div>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel>Menu</SidebarGroupLabel>}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainMenuItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => onViewChange(item.id)}
-                    isActive={activeView === item.id}
-                    tooltip={item.title}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter className="border-t border-sidebar-border">
-        {!collapsed && user && (
-          <div className="mb-1 px-4 pt-3">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {user.email}
-            </p>
-          </div>
-        )}
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
-              <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
+    </>
   );
 }
