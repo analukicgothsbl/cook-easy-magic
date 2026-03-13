@@ -46,7 +46,7 @@ const mainMenuItems = [
 ];
 
 export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarProps) {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === 'collapsed';
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
