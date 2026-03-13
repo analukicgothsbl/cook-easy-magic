@@ -475,7 +475,57 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_meal_plan_and_charge: {
+        Args: {
+          p_plan_date: string
+          p_recipes_json: Json
+          p_total_cost_usd: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      create_recipe_and_charge: {
+        Args: {
+          p_budget_level: string
+          p_cost_usd: number
+          p_cuisine: string
+          p_description_long: string
+          p_description_short: string
+          p_difficulty: string
+          p_embedding?: string
+          p_existing_recipe_id?: string
+          p_ingredients_json: Json
+          p_input_ingredients_json: Json
+          p_input_tokens: number
+          p_instructions: string
+          p_kids_friendly: boolean
+          p_meal_category: string
+          p_nutrition_estimate: Json
+          p_output_tokens: number
+          p_servings: number
+          p_time_minutes: number
+          p_tips: string
+          p_title: string
+          p_total_tokens: number
+          p_user_id: string
+        }
+        Returns: string
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      match_similar_recipes: {
+        Args: {
+          p_embedding: string
+          p_limit?: number
+          p_threshold?: number
+          p_user_id?: string
+        }
+        Returns: {
+          is_owned_by_user: boolean
+          recipe_id: string
+          recipe_title: string
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       app_role: "cook_master" | "admin"
