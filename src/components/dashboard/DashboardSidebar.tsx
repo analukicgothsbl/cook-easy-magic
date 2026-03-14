@@ -76,20 +76,31 @@ export function DashboardSidebar({ activeView, onViewChange }: DashboardSidebarP
 
       <SidebarContent>
         <SidebarGroup>
-          <div className={cn("flex items-center py-1", collapsed ? "justify-center px-0" : "justify-between px-2")}>
-            {!collapsed && <SidebarGroupLabel className="p-0">Menu</SidebarGroupLabel>}
-            <button
-              onClick={toggleSidebar}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm hover:bg-accent transition-colors"
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {collapsed ? (
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              ) : (
+          {!collapsed && (
+            <div className="flex items-center justify-between px-2 py-1">
+              <SidebarGroupLabel className="p-0">Menu</SidebarGroupLabel>
+              <button
+                onClick={toggleSidebar}
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-sm hover:bg-accent transition-colors"
+                aria-label="Collapse sidebar"
+              >
                 <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
-          </div>
+              </button>
+            </div>
+          )}
+          {collapsed && (
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={toggleSidebar}
+                  tooltip="Expand sidebar"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                  <span>Expand</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuItems.map((item) => (
